@@ -78,6 +78,7 @@ class IntegratorBundle:
     # keep working. Production sites (template.py, integrate_local_content,
     # drift.py) pass a real CanvasIntegrator; when None the loop skips canvas.
     canvas: BaseIntegrator | None = None
+    knowledge: BaseIntegrator | None = None
 
 
 def _log_hook_display_payloads(
@@ -268,6 +269,7 @@ def integrate_package_primitives(  # noqa: PLR0913
     result = {
         "prompts": 0,
         "agents": 0,
+        "knowledge": 0,
         "skills": 0,
         "sub_skills": 0,
         "instructions": 0,
@@ -416,6 +418,7 @@ def integrate_package_primitives(  # noqa: PLR0913
     _INTEGRATOR_KWARGS = {
         "prompts": integrators.prompt,
         "agents": integrators.agent,
+        "knowledge": integrators.knowledge,
         "commands": integrators.command,
         "instructions": integrators.instruction,
         "hooks": integrators.hook,
@@ -733,6 +736,7 @@ def integrate_local_content(
     same shape as ``integrate_package_primitives()``.
     """
     from ..integration.canvas_integrator import CanvasIntegrator
+    from ..integration.knowledge_integrator import KnowledgeIntegrator
     from ..models.apm_package import APMPackage, PackageInfo, PackageType
 
     if source_root is None:
@@ -762,6 +766,7 @@ def integrate_local_content(
             command=command_integrator,
             hook=hook_integrator,
             canvas=CanvasIntegrator(),
+            knowledge=KnowledgeIntegrator(),
         ),
         force=force,
         managed_files=managed_files,

@@ -370,6 +370,7 @@ def _integrate_root_project(
             for k in (
                 "prompts",
                 "agents",
+                "knowledge",
                 "skills",
                 "sub_skills",
                 "instructions",
@@ -385,6 +386,7 @@ def _integrate_root_project(
             "installed": int(_local_total > 0),
             "prompts": _root_result["prompts"],
             "agents": _root_result["agents"],
+            "knowledge": _root_result["knowledge"],
             "skills": _root_result.get("skills", 0),
             "sub_skills": _root_result.get("sub_skills", 0),
             "instructions": _root_result["instructions"],

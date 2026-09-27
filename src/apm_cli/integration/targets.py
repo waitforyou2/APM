@@ -578,6 +578,19 @@ KNOWN_TARGETS: dict[str, TargetProfile] = {
         user_supported=True,
         hooks_config_display=".claude/settings.json",
     ),
+    # CAC consumes Claude-compatible skill and agent files, but keeps its
+    # project configuration under .cac/. Opt in explicitly via targets: [cac].
+    "cac": TargetProfile(
+        capability=TARGET_CAPABILITIES["cac"],
+        root_dir=".cac",
+        primitives={
+            "agents": PrimitiveMapping("agents", ".md", "claude_agent"),
+            "skills": PrimitiveMapping("skills", "/SKILL.md", "skill_standard"),
+            "knowledge": PrimitiveMapping("knowledge", "", "cac_knowledge"),
+        },
+        auto_create=True,
+        detect_by_dir=False,
+    ),
     # Cursor -- at user scope, ~/.cursor/ supports skills, agents, hooks,
     # and MCP.  Rules/instructions are managed via Cursor Settings UI only
     # (not file-based), so "instructions" is excluded from user scope.

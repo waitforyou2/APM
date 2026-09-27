@@ -482,6 +482,7 @@ def run(ctx: InstallContext) -> None:
     from apm_cli.integration.copilot_cowork_paths import CoworkResolutionError
     from apm_cli.integration.hook_integrator import HookIntegrator
     from apm_cli.integration.instruction_integrator import InstructionIntegrator
+    from apm_cli.integration.knowledge_integrator import KnowledgeIntegrator
     from apm_cli.integration.skill_integrator import SkillIntegrator
     from apm_cli.integration.targets import (
         resolve_targets as _resolve_targets_legacy,
@@ -585,6 +586,7 @@ def run(ctx: InstallContext) -> None:
         "command": CommandIntegrator(),
         "hook": HookIntegrator(),
         "instruction": InstructionIntegrator(),
+        "knowledge": KnowledgeIntegrator(),
         "canvas": CanvasIntegrator(),
     }
 

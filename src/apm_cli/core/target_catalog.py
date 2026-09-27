@@ -120,6 +120,13 @@ TARGET_CAPABILITIES: Mapping[str, TargetCapability] = _build_target_catalog(
             compile_family="claude",
         ),
         _capability(
+            "cac",
+            "CAC native .cac configuration",
+            explicit_only=True,
+            primitive_profile="cac",
+            compile_family="claude",
+        ),
+        _capability(
             "cursor",
             "Cursor native .cursor configuration",
             in_all=True,

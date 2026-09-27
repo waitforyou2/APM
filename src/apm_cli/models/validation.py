@@ -933,6 +933,15 @@ def _validate_apm_package_with_yml(
                             f"Could not read primitive file {md_file.relative_to(package_path)}: {e}"
                         )
 
+    knowledge_dir = apm_dir / "knowledge"
+    if knowledge_dir.is_dir() and any(
+        path.is_file()
+        for bundle in knowledge_dir.iterdir()
+        if bundle.is_dir()
+        for path in bundle.rglob("*")
+    ):
+        has_primitives = True
+
     # Also check for hooks (JSON files in .apm/hooks/ or hooks/)
     if not has_primitives:
         has_primitives = _has_hook_json(package_path)

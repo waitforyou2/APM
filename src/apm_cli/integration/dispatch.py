@@ -47,6 +47,7 @@ def _build_dispatch() -> dict[str, PrimitiveDispatch]:
     from apm_cli.integration.command_integrator import CommandIntegrator
     from apm_cli.integration.hook_integrator import HookIntegrator
     from apm_cli.integration.instruction_integrator import InstructionIntegrator
+    from apm_cli.integration.knowledge_integrator import KnowledgeIntegrator
     from apm_cli.integration.prompt_integrator import PromptIntegrator
     from apm_cli.integration.skill_integrator import SkillIntegrator
 
@@ -56,6 +57,9 @@ def _build_dispatch() -> dict[str, PrimitiveDispatch]:
         ),
         "agents": PrimitiveDispatch(
             AgentIntegrator, "integrate_agents_for_target", "sync_for_target", "agents"
+        ),
+        "knowledge": PrimitiveDispatch(
+            KnowledgeIntegrator, "integrate_knowledge_for_target", "sync_for_target", "knowledge"
         ),
         "commands": PrimitiveDispatch(
             CommandIntegrator, "integrate_commands_for_target", "sync_for_target", "commands"

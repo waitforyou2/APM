@@ -486,6 +486,7 @@ def _make_integrators():
     from apm_cli.integration.command_integrator import CommandIntegrator
     from apm_cli.integration.hook_integrator import HookIntegrator
     from apm_cli.integration.instruction_integrator import InstructionIntegrator
+    from apm_cli.integration.knowledge_integrator import KnowledgeIntegrator
     from apm_cli.integration.prompt_integrator import PromptIntegrator
     from apm_cli.integration.skill_integrator import SkillIntegrator
 
@@ -496,6 +497,7 @@ def _make_integrators():
         "command": CommandIntegrator(),
         "hook": HookIntegrator(),
         "instruction": InstructionIntegrator(),
+        "knowledge": KnowledgeIntegrator(),
     }
 
 
@@ -693,6 +695,7 @@ def run_replay(config: ReplayConfig, logger: CheckLogger) -> Path:
                         instruction=integrators["instruction"],
                         command=integrators["command"],
                         hook=integrators["hook"],
+                        knowledge=integrators["knowledge"],
                     ),
                     force=True,
                     managed_files=set(),

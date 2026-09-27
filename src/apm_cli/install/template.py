@@ -83,7 +83,7 @@ def _effective_allow(ctx) -> dict | None:
 def run_integration_template(
     source: DependencySource,
     *,
-    materialization: Materialization | None | object = _MATERIALIZATION_UNSET,
+    materialization: Materialization | object | None = _MATERIALIZATION_UNSET,
 ) -> dict[str, int] | None:
     """Run the shared post-acquire integration flow for one dependency.
 
@@ -417,6 +417,7 @@ def _integrate_materialization(
                 command=ctx.integrators["command"],
                 hook=ctx.integrators["hook"],
                 canvas=ctx.integrators.get("canvas"),
+                knowledge=ctx.integrators.get("knowledge"),
             ),
             force=ctx.force,
             managed_files=ctx.managed_files,
@@ -433,6 +434,7 @@ def _integrate_materialization(
         mutation_keys = (
             "prompts",
             "agents",
+            "knowledge",
             "skills",
             "sub_skills",
             "instructions",

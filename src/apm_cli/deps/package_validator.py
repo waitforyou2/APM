@@ -107,6 +107,15 @@ class PackageValidator:
                         for md_file in md_files:
                             self._validate_primitive_file(md_file, result)
 
+            knowledge_dir = apm_dir / "knowledge"
+            if knowledge_dir.is_dir() and any(
+                path.is_file()
+                for bundle in knowledge_dir.iterdir()
+                if bundle.is_dir()
+                for path in bundle.rglob("*")
+            ):
+                has_primitives = True
+
             # Check for hooks (JSON files, not markdown)
             hooks_dir = apm_dir / "hooks"
             if hooks_dir.exists() and hooks_dir.is_dir():

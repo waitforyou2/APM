@@ -154,6 +154,16 @@ class DeployableSourcePlan:
             add_direct_matching_files(source_root, "*.agent.md", warn_agent_symlink)
             add_matching_files(source_root / ".apm" / "agents", "*.md", warn_agent_symlink)
 
+        if "knowledge" in target_primitives:
+            # Knowledge is an opaque, directory-preserving data primitive.
+            # Only named bundles are deployable; loose files at this root are
+            # not part of the .apm/knowledge/<name>/ contract.
+            knowledge_root = source_root / ".apm" / "knowledge"
+            if _is_safe_source_path(knowledge_root, source_root) and knowledge_root.is_dir():
+                for bundle in knowledge_root.iterdir():
+                    if bundle.is_dir():
+                        add_tree(bundle)
+
         if "instructions" in target_primitives:
             add_matching_files(source_root / ".apm" / "instructions", "*.instructions.md")
 
