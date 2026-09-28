@@ -395,12 +395,16 @@ def _recheck_dep(
     is_local: bool,
     artifactory_prefix: str | None,
     ref_kind: str | None,
+    reference: str | None = None,
+    source: str = "git",
 ) -> SimpleNamespace:
     """Build the minimal dependency shape consumed by the canonical owner."""
     return SimpleNamespace(
         is_local=is_local,
         artifactory_prefix=artifactory_prefix,
         ref_kind=ref_kind,
+        reference=reference,
+        source=source,
     )
 
 
@@ -460,15 +464,48 @@ class TestForceRefRecheck:
         )
 
     def test_registry_literal_ref_no_force(self) -> None:
-        """Registry dep with a literal ref (e.g. 'stable') is never force-resolved."""
+        """An unchanged registry literal ref is not force-resolved."""
         assert (
             should_force_ref_recheck(
                 _recheck_dep(
                     is_local=False,
                     artifactory_prefix=None,
                     ref_kind="literal",
+                    reference="stable",
+                    source="registry",
                 ),
-                SimpleNamespace(),
+                SimpleNamespace(source="registry", version="stable"),
+                update_refs=True,
+            )
+            is False
+        )
+
+    def test_changed_transitive_git_literal_ref_forces_download_on_update(self) -> None:
+        """A new parent manifest pin must replace a cached child package."""
+        assert (
+            should_force_ref_recheck(
+                _recheck_dep(
+                    is_local=False,
+                    artifactory_prefix=None,
+                    ref_kind="literal",
+                    reference="v2.0.0",
+                ),
+                SimpleNamespace(source="git", resolved_ref="v1.0.0"),
+                update_refs=True,
+            )
+            is True
+        )
+
+    def test_unchanged_transitive_git_literal_ref_reuses_locked_package(self) -> None:
+        assert (
+            should_force_ref_recheck(
+                _recheck_dep(
+                    is_local=False,
+                    artifactory_prefix=None,
+                    ref_kind="literal",
+                    reference="v1.0.0",
+                ),
+                SimpleNamespace(source="git", resolved_ref="v1.0.0"),
                 update_refs=True,
             )
             is False

@@ -181,15 +181,19 @@ def should_force_ref_recheck(
 
     This is the single gate shared by the dependency resolver and its download
     callback. A normal install rechecks only manifest/lock drift. An explicit
-    update rechecks semver ranges so they can discover a newer matching tag,
-    while literal revision pins retain their dedicated update semantics.
+    update rechecks semver ranges so they can discover a newer matching tag.
+    Literal refs are rechecked only when the newly loaded parent manifest
+    changed them relative to the existing lockfile; otherwise they keep their
+    dedicated revision-pin update semantics.
     """
     if dep_ref.is_local or getattr(dep_ref, "artifactory_prefix", None):
         return False
     if locked_dep is None:
         return True
     if update_refs:
-        return getattr(dep_ref, "ref_kind", None) == "semver"
+        return getattr(dep_ref, "ref_kind", None) == "semver" or detect_ref_change(
+            dep_ref, locked_dep, update_refs=False
+        )
     return detect_ref_change(dep_ref, locked_dep, update_refs=False)
 
 
