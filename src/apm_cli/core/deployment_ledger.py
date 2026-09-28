@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 _LEGACY_TARGET_PREFIXES = {
     ".github/": "copilot",
     ".claude/": "claude",
+    ".cac/": "cac",
     ".cursor/": "cursor",
     ".windsurf/": "windsurf",
     ".kiro/": "kiro",

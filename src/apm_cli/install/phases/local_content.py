@@ -72,6 +72,7 @@ def _has_local_apm_content(project_root):
         "chatmodes",
         "agents",
         "knowledge",
+        "workflows",
         "prompts",
         "hooks",
         "commands",

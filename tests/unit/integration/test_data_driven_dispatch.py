@@ -33,6 +33,7 @@ def _to_bundle(d: dict) -> IntegratorBundle:
         command=d["command_integrator"],
         hook=d["hook_integrator"],
         knowledge=d["knowledge_integrator"],
+        workflow=d["workflow_integrator"],
     )
 
 
@@ -89,6 +90,8 @@ def _make_mock_integrators():
 
     knowledge = MagicMock()
     knowledge.integrate_knowledge_for_target = MagicMock(return_value=_make_integration_result())
+    workflow = MagicMock()
+    workflow.integrate_workflows_for_target = MagicMock(return_value=_make_integration_result())
 
     return {
         "prompt_integrator": prompt,
@@ -98,6 +101,7 @@ def _make_mock_integrators():
         "hook_integrator": hook,
         "skill_integrator": skill,
         "knowledge_integrator": knowledge,
+        "workflow_integrator": workflow,
     }
 
 
@@ -255,6 +259,7 @@ class TestTargetGatingRegression:
             "instruction_integrator": "integrate_instructions_for_target",
             "hook_integrator": "integrate_hooks_for_target",
             "knowledge_integrator": "integrate_knowledge_for_target",
+            "workflow_integrator": "integrate_workflows_for_target",
         }
         prim_from_method = {
             "integrate_prompts_for_target": "prompts",
@@ -263,6 +268,7 @@ class TestTargetGatingRegression:
             "integrate_instructions_for_target": "instructions",
             "integrate_hooks_for_target": "hooks",
             "integrate_knowledge_for_target": "knowledge",
+            "integrate_workflows_for_target": "workflows",
         }
 
         for int_name, method_name in method_map.items():
@@ -321,6 +327,7 @@ class TestExhaustivenessChecks:
             "agents_codex",
             "agents_cac",
             "knowledge_cac",
+            "workflows_cac",
             # NOTE: windsurf no longer exposes an 'agents' primitive
             # (its content deploys as skills under .agents/skills/).
             "commands",  # was commands_claude, aliased
@@ -905,6 +912,7 @@ class TestPrimitiveCoverage:
             "agents": None,
             "commands": None,
             "knowledge": None,
+            "workflows": None,
         }
         with pytest.raises(RuntimeError, match="instructions"):
             check_primitive_coverage(
@@ -923,6 +931,7 @@ class TestPrimitiveCoverage:
             "instructions",
             "canvas",
             "knowledge",
+            "workflows",
         }
         # skills and hooks are special-cased
         check_primitive_coverage(
@@ -950,13 +959,22 @@ class TestDispatchTable:
         assert "hooks" in dispatch
         assert "skills" in dispatch
         assert "knowledge" in dispatch
+        assert "workflows" in dispatch
 
     def test_skills_is_multi_target(self):
         from apm_cli.integration.dispatch import get_dispatch_table
 
         dispatch = get_dispatch_table()
         assert dispatch["skills"].multi_target is True
-        for name in ("prompts", "agents", "knowledge", "commands", "instructions", "hooks"):
+        for name in (
+            "prompts",
+            "agents",
+            "knowledge",
+            "workflows",
+            "commands",
+            "instructions",
+            "hooks",
+        ):
             assert dispatch[name].multi_target is False
 
     def test_dispatch_entries_have_valid_methods(self):
@@ -981,6 +999,7 @@ class TestDispatchTable:
             "prompts",
             "agents",
             "knowledge",
+            "workflows",
             "commands",
             "instructions",
             "hooks",
@@ -1018,6 +1037,7 @@ class TestCoverageReverse:
             "prompts": None,
             "agents": None,
             "knowledge": None,
+            "workflows": None,
             "commands": None,
             "instructions": None,
             "hooks": None,

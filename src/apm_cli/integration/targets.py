@@ -587,6 +587,7 @@ KNOWN_TARGETS: dict[str, TargetProfile] = {
             "agents": PrimitiveMapping("agents", ".md", "claude_agent"),
             "skills": PrimitiveMapping("skills", "/SKILL.md", "skill_standard"),
             "knowledge": PrimitiveMapping("knowledge", "", "cac_knowledge"),
+            "workflows": PrimitiveMapping("workflows", "", "cac_workflows"),
         },
         auto_create=True,
         detect_by_dir=False,

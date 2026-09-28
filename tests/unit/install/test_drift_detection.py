@@ -280,7 +280,16 @@ class TestBuildPackageInfo:
 class TestMakeIntegrators:
     def test_returns_all_expected_keys(self) -> None:
         integrators = _make_integrators()
-        expected = {"prompt", "agent", "skill", "command", "hook", "instruction"}
+        expected = {
+            "prompt",
+            "agent",
+            "skill",
+            "command",
+            "hook",
+            "instruction",
+            "knowledge",
+            "workflow",
+        }
         assert expected == set(integrators.keys())
 
 

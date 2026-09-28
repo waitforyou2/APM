@@ -157,6 +157,7 @@ def test_current_native_profiles_are_characterized() -> None:
                 "agents": ("agents", ".md", "claude_agent", None, False),
                 "skills": ("skills", "/SKILL.md", "skill_standard", None, False),
                 "knowledge": ("knowledge", "", "cac_knowledge", None, False),
+                "workflows": ("workflows", "", "cac_workflows", None, False),
             },
             "claude",
             None,

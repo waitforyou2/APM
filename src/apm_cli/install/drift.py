@@ -477,28 +477,21 @@ def _build_package_info(
 
 
 def _make_integrators():
-    """Build a fresh integrator set for one replay run.
+    """Construct replay handlers from the same registry used by install."""
+    from apm_cli.integration.dispatch import get_dispatch_table
 
-    Mirrors ``apm_cli.install.phases.targets:208-215`` so the replay
-    behaves identically to a real ``apm install --integrate``.
-    """
-    from apm_cli.integration.agent_integrator import AgentIntegrator
-    from apm_cli.integration.command_integrator import CommandIntegrator
-    from apm_cli.integration.hook_integrator import HookIntegrator
-    from apm_cli.integration.instruction_integrator import InstructionIntegrator
-    from apm_cli.integration.knowledge_integrator import KnowledgeIntegrator
-    from apm_cli.integration.prompt_integrator import PromptIntegrator
-    from apm_cli.integration.skill_integrator import SkillIntegrator
-
-    return {
-        "prompt": PromptIntegrator(),
-        "agent": AgentIntegrator(),
-        "skill": SkillIntegrator(),
-        "command": CommandIntegrator(),
-        "hook": HookIntegrator(),
-        "instruction": InstructionIntegrator(),
-        "knowledge": KnowledgeIntegrator(),
+    dispatch = get_dispatch_table()
+    aliases = {
+        "prompt": "prompts",
+        "agent": "agents",
+        "skill": "skills",
+        "command": "commands",
+        "hook": "hooks",
+        "instruction": "instructions",
+        "knowledge": "knowledge",
+        "workflow": "workflows",
     }
+    return {alias: dispatch[name].integrator_class() for alias, name in aliases.items()}
 
 
 def _filter_targets(all_targets, names: frozenset[str] | None):
@@ -696,6 +689,7 @@ def run_replay(config: ReplayConfig, logger: CheckLogger) -> Path:
                         command=integrators["command"],
                         hook=integrators["hook"],
                         knowledge=integrators["knowledge"],
+                        workflow=integrators["workflow"],
                     ),
                     force=True,
                     managed_files=set(),

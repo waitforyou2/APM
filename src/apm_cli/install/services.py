@@ -19,7 +19,6 @@ namespace intercepts both call paths consistently.
 from __future__ import annotations
 
 import builtins
-from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -31,6 +30,7 @@ from .deployed_paths import skill_bundle_file_entries as _skill_bundle_file_entr
 from .exec_gate import check_executable_approval
 from .exec_gate import plugin_bin_deployable as _plugin_bin_deployable
 from .exec_gate import resolve_bin_skip as _resolve_bin_skip
+from .integrator_bundle import IntegratorBundle
 from .local_bundle_paths import bundle_deploy_relative_path as _bundle_rel
 from .local_bundle_paths import bundle_deploy_skip_warning as _bundle_skip_warning
 from .local_bundle_paths import bundle_pack_files as _bundle_pack_files
@@ -46,7 +46,6 @@ if TYPE_CHECKING:
     from ..core.command_logger import InstallLogger
     from ..core.scope import InstallScope
     from ..install.context import InstallContext
-    from ..integration.base_integrator import BaseIntegrator
     from ..utils.diagnostics import DiagnosticCollector
 
 
@@ -57,28 +56,6 @@ if TYPE_CHECKING:
 set = builtins.set
 list = builtins.list
 dict = builtins.dict
-
-
-@dataclass(frozen=True)
-class IntegratorBundle:
-    """Groups the six primitive integrators passed to ``integrate_package_primitives``.
-
-    Using a bundle reduces the public argument count of
-    ``integrate_package_primitives`` below the PLR0913 threshold (≤15) while
-    keeping the integrator objects strongly typed and discoverable.
-    """
-
-    prompt: BaseIntegrator
-    agent: BaseIntegrator
-    skill: BaseIntegrator
-    instruction: BaseIntegrator
-    command: BaseIntegrator
-    hook: BaseIntegrator
-    # Optional so the ~16 existing test/prod construction sites that omit it
-    # keep working. Production sites (template.py, integrate_local_content,
-    # drift.py) pass a real CanvasIntegrator; when None the loop skips canvas.
-    canvas: BaseIntegrator | None = None
-    knowledge: BaseIntegrator | None = None
 
 
 def _log_hook_display_payloads(
@@ -270,6 +247,7 @@ def integrate_package_primitives(  # noqa: PLR0913
         "prompts": 0,
         "agents": 0,
         "knowledge": 0,
+        "workflows": 0,
         "skills": 0,
         "sub_skills": 0,
         "instructions": 0,
@@ -419,6 +397,7 @@ def integrate_package_primitives(  # noqa: PLR0913
         "prompts": integrators.prompt,
         "agents": integrators.agent,
         "knowledge": integrators.knowledge,
+        "workflows": integrators.workflow,
         "commands": integrators.command,
         "instructions": integrators.instruction,
         "hooks": integrators.hook,
@@ -737,6 +716,7 @@ def integrate_local_content(
     """
     from ..integration.canvas_integrator import CanvasIntegrator
     from ..integration.knowledge_integrator import KnowledgeIntegrator
+    from ..integration.workflow_integrator import WorkflowIntegrator
     from ..models.apm_package import APMPackage, PackageInfo, PackageType
 
     if source_root is None:
@@ -767,6 +747,7 @@ def integrate_local_content(
             hook=hook_integrator,
             canvas=CanvasIntegrator(),
             knowledge=KnowledgeIntegrator(),
+            workflow=WorkflowIntegrator(),
         ),
         force=force,
         managed_files=managed_files,

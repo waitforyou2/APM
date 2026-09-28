@@ -116,6 +116,10 @@ class PackageValidator:
             ):
                 has_primitives = True
 
+            workflows_dir = apm_dir / "workflows"
+            if workflows_dir.is_dir() and any(path.is_file() for path in workflows_dir.rglob("*")):
+                has_primitives = True
+
             # Check for hooks (JSON files, not markdown)
             hooks_dir = apm_dir / "hooks"
             if hooks_dir.exists() and hooks_dir.is_dir():

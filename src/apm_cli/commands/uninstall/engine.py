@@ -1174,6 +1174,7 @@ def _sync_integrations_after_uninstall(
         hook=_integrators["hooks"],
         canvas=_integrators["canvas"],
         knowledge=_integrators["knowledge"],
+        workflow=_integrators["workflows"],
     )
 
     # Resolve targets once -- used for both Phase 1 removal and Phase 2 re-integration.

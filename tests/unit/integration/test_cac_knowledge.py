@@ -33,7 +33,7 @@ def _plan(package: PackageInfo) -> DeployableSourcePlan:
     )
 
 
-def test_cac_is_explicit_project_target_with_all_three_directories(tmp_path):
+def test_cac_is_explicit_project_target_with_all_four_directories(tmp_path):
     assert "cac" in manifest_target_names()
     assert resolve_targets(tmp_path, explicit_target="cac") == [CAC]
     assert CAC.root_dir == ".cac"
@@ -41,6 +41,7 @@ def test_cac_is_explicit_project_target_with_all_three_directories(tmp_path):
         "agents": "agents",
         "skills": "skills",
         "knowledge": "knowledge",
+        "workflows": "workflows",
     }
     assert CAC.for_scope(user_scope=True) is None
     check_primitive_coverage(get_dispatch_table())

@@ -164,6 +164,11 @@ class DeployableSourcePlan:
                     if bundle.is_dir():
                         add_tree(bundle)
 
+        if "workflows" in target_primitives:
+            # Workflow definitions and their assets are opaque content. This
+            # admits both direct files and named bundles, without execution.
+            add_tree(source_root / ".apm" / "workflows")
+
         if "instructions" in target_primitives:
             add_matching_files(source_root / ".apm" / "instructions", "*.instructions.md")
 

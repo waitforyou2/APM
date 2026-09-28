@@ -487,6 +487,7 @@ def run(ctx: InstallContext) -> None:
     from apm_cli.integration.targets import (
         resolve_targets as _resolve_targets_legacy,
     )
+    from apm_cli.integration.workflow_integrator import WorkflowIntegrator
 
     # Get config target from apm.yml if available.
     try:
@@ -587,6 +588,7 @@ def run(ctx: InstallContext) -> None:
         "hook": HookIntegrator(),
         "instruction": InstructionIntegrator(),
         "knowledge": KnowledgeIntegrator(),
+        "workflow": WorkflowIntegrator(),
         "canvas": CanvasIntegrator(),
     }
 

@@ -50,6 +50,7 @@ def _build_dispatch() -> dict[str, PrimitiveDispatch]:
     from apm_cli.integration.knowledge_integrator import KnowledgeIntegrator
     from apm_cli.integration.prompt_integrator import PromptIntegrator
     from apm_cli.integration.skill_integrator import SkillIntegrator
+    from apm_cli.integration.workflow_integrator import WorkflowIntegrator
 
     return {
         "prompts": PrimitiveDispatch(
@@ -60,6 +61,9 @@ def _build_dispatch() -> dict[str, PrimitiveDispatch]:
         ),
         "knowledge": PrimitiveDispatch(
             KnowledgeIntegrator, "integrate_knowledge_for_target", "sync_for_target", "knowledge"
+        ),
+        "workflows": PrimitiveDispatch(
+            WorkflowIntegrator, "integrate_workflows_for_target", "sync_for_target", "workflows"
         ),
         "commands": PrimitiveDispatch(
             CommandIntegrator, "integrate_commands_for_target", "sync_for_target", "commands"

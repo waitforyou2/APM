@@ -933,6 +933,10 @@ def _validate_apm_package_with_yml(
                             f"Could not read primitive file {md_file.relative_to(package_path)}: {e}"
                         )
 
+    workflows_dir = apm_dir / "workflows"
+    if workflows_dir.is_dir() and any(path.is_file() for path in workflows_dir.rglob("*")):
+        has_primitives = True
+
     knowledge_dir = apm_dir / "knowledge"
     if knowledge_dir.is_dir() and any(
         path.is_file()
