@@ -1,6 +1,7 @@
 """Typed Git-resource contracts are opt-in and preserve legacy manifests."""
 
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
@@ -36,6 +37,13 @@ def test_projection_preserves_content_and_validates(
 def test_legacy_directory_is_untouched(tmp_path: Path) -> None:
     (tmp_path / "index.md").write_text("legacy\n", encoding="utf-8")
     project_resource_directory(tmp_path, None)
+    assert not (tmp_path / "apm.yml").exists()
+    assert (tmp_path / "index.md").read_text(encoding="utf-8") == "legacy\n"
+
+
+def test_untyped_mock_does_not_project_legacy_directory(tmp_path: Path) -> None:
+    (tmp_path / "index.md").write_text("legacy\n", encoding="utf-8")
+    project_resource_directory(tmp_path, Mock())
     assert not (tmp_path / "apm.yml").exists()
     assert (tmp_path / "index.md").read_text(encoding="utf-8") == "legacy\n"
 

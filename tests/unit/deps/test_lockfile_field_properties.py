@@ -31,6 +31,7 @@ from apm_cli.core.host_providers import accepted_host_types
 from apm_cli.deps.lockfile import LockedDependency, LockFile
 from apm_cli.models.dependency.provider_coordinates import ProviderCoordinateMixin
 from apm_cli.models.dependency.reference import DependencyReference
+from apm_cli.models.dependency.resource import ResourceSpec
 
 pytestmark = pytest.mark.unit
 
@@ -158,6 +159,7 @@ def locked_dependency_kwargs(draw: st.DrawFn) -> dict[str, Any]:
     kwargs["target_subset"] = draw(
         st.one_of(st.just([]), st.permutations(["copilot", "claude"]).map(sorted))
     )
+    kwargs["resource"] = maybe(None, st.just(ResourceSpec("knowledge", "sample")))
     kwargs["resolved_url"] = maybe(None, st.just("https://registry.example.invalid/pkg.tgz"))
     kwargs["resolved_hash"] = maybe(None, _SHA.map(lambda s: f"sha256:{s}"))
     kwargs["constraint"] = maybe(None, st.just("^1.0.0"))

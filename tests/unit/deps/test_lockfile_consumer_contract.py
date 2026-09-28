@@ -11,6 +11,7 @@ import pytest
 
 from apm_cli.deps.lockfile import LockedDependency, LockFile
 from apm_cli.models.dependency.reference import DependencyReference
+from apm_cli.models.dependency.resource import ResourceSpec
 
 pytestmark = pytest.mark.unit
 
@@ -48,6 +49,7 @@ _LOCKED_DEPENDENCY_VALUES = {
     "allow_insecure": True,
     "skill_subset": ["alpha", "beta"],
     "target_subset": ["copilot"],
+    "resource": ResourceSpec("knowledge", "consume-contract"),
     "resolved_url": "https://registry.example.invalid/consume-contract.tgz",
     "resolved_hash": f"sha256:{'e' * 64}",
     "constraint": "^1.0.0",
@@ -79,6 +81,7 @@ _RECONSTRUCTED_LOCK_FIELDS = {
     "allow_insecure",
     "skill_subset",
     "target_subset",
+    "resource",
 }
 
 _REFERENCE_TO_LOCK_FIELD = {
@@ -176,6 +179,7 @@ def test_reconstruction_declares_and_preserves_every_consumed_lock_field() -> No
         allow_insecure=True,
         skill_subset=["beta", "alpha"],
         target_subset=["copilot"],
+        resource=ResourceSpec("knowledge", "consume-contract"),
     )
 
     reconstructed = dependency.to_dependency_ref()
@@ -198,6 +202,7 @@ def test_reconstruction_declares_and_preserves_every_consumed_lock_field() -> No
     assert reconstructed.allow_insecure is dependency.allow_insecure
     assert reconstructed.skill_subset == ["alpha", "beta"]
     assert reconstructed.target_subset == ["copilot"]
+    assert reconstructed.resource == dependency.resource
 
 
 def test_ado_coordinates_are_derived_after_generic_lock_round_trip() -> None:

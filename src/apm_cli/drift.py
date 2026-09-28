@@ -54,6 +54,7 @@ from dataclasses import replace as _dataclass_replace
 from typing import TYPE_CHECKING, Any
 
 from apm_cli.install.phases._skip_logic import _should_use_locked_ref
+from apm_cli.models.dependency.resource import ResourceSpec
 
 if TYPE_CHECKING:
     from apm_cli.deps.lockfile import LockedDependency, LockFile
@@ -124,7 +125,15 @@ def detect_ref_change(
     # The same Git bytes can be projected to a different resource location.
     # Reuse of the old installed package would preserve the wrong .apm tree,
     # even when the remote SHA and ref have not changed.
-    if getattr(dep_ref, "resource", None) != getattr(locked_dep, "resource", None):
+    declared_resource = getattr(dep_ref, "resource", None)
+    locked_resource = getattr(locked_dep, "resource", None)
+    # Older callers/tests can pass mocks with arbitrary synthetic attributes.
+    # Only a parsed ResourceSpec is an opt-in typed-resource contract.
+    if not isinstance(declared_resource, ResourceSpec):
+        declared_resource = None
+    if not isinstance(locked_resource, ResourceSpec):
+        locked_resource = None
+    if declared_resource != locked_resource:
         return True
     if update_refs:
         return False

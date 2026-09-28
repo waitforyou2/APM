@@ -11,7 +11,9 @@ from apm_cli.models.dependency.resource import ResourceSpec
 
 def project_resource_directory(root: Path, resource: ResourceSpec | None) -> None:
     """Project only an opted-in source directory; legacy packages are untouched."""
-    if resource is None:
+    # Legacy references (including mocked references with synthetic attributes)
+    # must never opt into the directory projection by accident.
+    if not isinstance(resource, ResourceSpec):
         return
     if (root / "apm.yml").exists() or (root / ".apm").exists():
         raise ValueError("Typed resource source must be a plain directory, not an APM package")
