@@ -233,7 +233,9 @@ class ArtifactoryOrchestrator:
         self._progress(progress_obj, progress_task_id, completed=70)
 
         from ._shared import _validate_and_load_package
+        from .resource_projection import project_resource_directory
 
+        project_resource_directory(target_path, dep_ref.resource)
         validation_result = validate_apm_package(target_path)
         package = _validate_and_load_package(validation_result, target_path, dep_ref)
         ref_type, resolved_commit = self._resolved_commit_metadata(ref)
@@ -303,7 +305,9 @@ class ArtifactoryOrchestrator:
 
         self._progress(progress_obj, progress_task_id, completed=80)
         from ._shared import _validate_and_load_package
+        from .resource_projection import project_resource_directory
 
+        project_resource_directory(target_path, dep_ref.resource)
         validation_result = validate_apm_package(target_path)
         package = _validate_and_load_package(validation_result, target_path, dep_ref)
         ref_type, resolved_commit = self._resolved_commit_metadata(ref)

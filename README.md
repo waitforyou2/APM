@@ -8,6 +8,9 @@ GitHub Copilot | Claude Code | Grok Build | Cursor | OpenCode | Codex | Gemini |
 
 **[Documentation](https://microsoft.github.io/apm/)** · **[Quick Start](https://microsoft.github.io/apm/getting-started/quick-start/)** · **[CLI Reference](https://microsoft.github.io/apm/reference/cli-commands/)** · **[Roadmap](https://github.com/orgs/microsoft/projects/2304/views/5)**
 
+This fork's opt-in Git resource directory extension is documented in
+[Typed Git resources](TYPED_RESOURCES.md).
+
 ---
 
 > **Portable by manifest. Secure by default. Governed by policy.**

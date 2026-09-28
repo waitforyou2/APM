@@ -92,6 +92,11 @@ class DeployableSourcePlan:
         selected_skill_names: frozenset[str] | None = None
         hook_source_selection = None
         target_primitives = {primitive for target in targets for primitive in target.primitives}
+        resource = getattr(getattr(package_info, "dependency_ref", None), "resource", None)
+        from apm_cli.models.dependency.resource import ResourceSpec
+
+        if not isinstance(resource, ResourceSpec):
+            resource = None
 
         def warn_agent_symlink(path: Path) -> None:
             if diagnostics is not None:
@@ -168,6 +173,9 @@ class DeployableSourcePlan:
             # Workflow definitions and their assets are opaque content. This
             # admits both direct files and named bundles, without execution.
             add_tree(source_root / ".apm" / "workflows")
+
+        if resource is not None and resource.is_custom and resource.kind in target_primitives:
+            add_tree(source_root / ".apm" / resource.kind / resource.name)
 
         if "instructions" in target_primitives:
             add_matching_files(source_root / ".apm" / "instructions", "*.instructions.md")

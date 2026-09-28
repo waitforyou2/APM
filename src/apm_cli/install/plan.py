@@ -260,7 +260,11 @@ def build_update_plan(
         old_commit = old.resolved_commit
         deployed = tuple(old.deployed_files)
 
-        if (old_commit or None) == (new_commit or None) and (old_ref or None) == (new_ref or None):
+        if (
+            (old_commit or None) == (new_commit or None)
+            and (old_ref or None) == (new_ref or None)
+            and getattr(old, "resource", None) == getattr(dep, "resource", None)
+        ):
             plan_entries.append(
                 PlanEntry(
                     dep_key=key,
@@ -483,6 +487,10 @@ def lockfile_satisfies_manifest(
         key = _dep_ref_key(dep)
         if key not in locked_keys:
             reasons.append(f"  - {key} is declared in apm.yml but missing from apm.lock.yaml")
+        elif getattr(lockfile.dependencies[key], "resource", None) != getattr(
+            dep, "resource", None
+        ):
+            reasons.append(f"  - {key} has a different resource kind/name in apm.lock.yaml")
 
     return (not reasons, reasons)
 

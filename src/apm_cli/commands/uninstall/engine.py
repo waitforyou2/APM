@@ -1244,6 +1244,39 @@ def _sync_integrations_after_uninstall(
             )
             counts[_entry.counter_key] += result.get("files_removed", 0)
 
+    # Typed CAC extension kinds are intentionally absent from the global
+    # dispatch table. Remove only files recorded by APM, then Phase 2 restores
+    # surviving resources through the regular install/security pipeline.
+    if sync_managed:
+        from ...integration.custom_resource import (
+            custom_resource_integrator,
+            custom_resource_target,
+        )
+        from ...models.dependency.resource import ResourceSpec
+
+        cac_target = next((target for target in _resolved_targets if target.name == "cac"), None)
+        if cac_target is not None:
+            custom_kinds = set()
+            for deployed_path in sync_managed:
+                parts = deployed_path.replace("\\", "/").split("/")
+                if len(parts) < 4 or parts[0] != ".cac":
+                    continue
+                try:
+                    spec = ResourceSpec.parse({"kind": parts[1], "name": parts[2]})
+                except ValueError:
+                    continue
+                if spec.is_custom:
+                    custom_kinds.add(spec.kind)
+            for kind in sorted(custom_kinds):
+                custom_target = custom_resource_target(cac_target, kind)
+                stats = custom_resource_integrator(kind)().sync_for_target(
+                    custom_target,
+                    apm_package,
+                    project_root,
+                    managed_files=sync_managed,
+                )
+                counts[kind] = stats.get("files_removed", 0)
+
     # Skills (multi-target, handled by SkillIntegrator)
     # Check both target root_dir and deploy_root for skill directories
     _skill_dirs_exist = False

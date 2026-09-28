@@ -17,6 +17,7 @@ _REMOTE_GIT_DEPENDENCY_FIELDS = frozenset(
         "git",
         "path",
         "ref",
+        "resource",
         "skills",
         "targets",
         "type",

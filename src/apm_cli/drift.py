@@ -109,19 +109,25 @@ def detect_ref_change(
         dep_ref: The dependency as declared in the current manifest.
         locked_dep: The matching entry from the existing lockfile, or ``None``
                     when the package is brand-new (not yet in the lockfile).
-        update_refs: Pass ``True`` when running in ``--update`` mode.  In that
-                     mode the lockfile is intentionally ignored, so this
-                     function always returns ``False`` to avoid double-action.
+        update_refs: Pass ``True`` when running in ``--update`` mode. Git ref
+                     drift is ignored then, but typed-resource layout drift
+                     still requires a fresh projection.
 
     Returns:
         ``True`` when a re-download is needed due to a ref change; ``False``
         when the ref is unchanged, when the package is new, or when
         ``update_refs=True``.
     """
-    if update_refs:
-        return False
     if locked_dep is None:
         return False  # new package — not drift, just a first install
+
+    # The same Git bytes can be projected to a different resource location.
+    # Reuse of the old installed package would preserve the wrong .apm tree,
+    # even when the remote SHA and ref have not changed.
+    if getattr(dep_ref, "resource", None) != getattr(locked_dep, "resource", None):
+        return True
+    if update_refs:
+        return False
 
     # Source flip drift: manifest changed resolver between installs (e.g.
     # was ``- git: ...``, now ``acme/foo@corp#^1.0.0``). The install path,

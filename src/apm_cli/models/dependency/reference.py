@@ -59,6 +59,7 @@ from .object_fields import (
     reject_unknown_git_fields,
 )
 from .provider_coordinates import ProviderCoordinateMixin
+from .resource import ResourceSpec
 from .types import VirtualPackageType
 
 _REF_VERSION_SUFFIX_RE = re.compile(r"^v?\d+(?:\.\d+)*(?:[-+][A-Za-z0-9][A-Za-z0-9._-]*)?$")
@@ -103,6 +104,9 @@ class DependencyReference(ProviderCoordinateMixin):
     # SKILL_BUNDLE subset selection (persisted in apm.yml `skills:` field)
     skill_subset: list[str] | None = None  # Sorted skill names, or None = all
     target_subset: list[str] | None = None  # Sorted lowercase target names, or None = all
+    resource: ResourceSpec | None = (
+        None  # Explicit Git directory type; absent keeps legacy inference
+    )
 
     # SSH username for SCP-shorthand or ``ssh://`` dependencies. ``None`` for
     # non-SSH inputs. Defaults to ``"git"`` whenever an SSH form was parsed
@@ -921,6 +925,14 @@ class DependencyReference(ProviderCoordinateMixin):
             dep.is_virtual = True
 
         apply_optional_dependency_fields(dep, entry)
+        if "resource" in entry:
+            dep.resource = ResourceSpec.parse(entry["resource"])
+            if dep.is_virtual_file():
+                raise ValueError("'resource' requires a Git directory path, not a virtual file")
+            if dep.skill_subset:
+                raise ValueError("'resource' cannot be combined with the 'skills' subset")
+            if dep.alias is None:
+                dep.alias = dep.resource.name
         return dep
 
     @staticmethod
@@ -1930,6 +1942,22 @@ class DependencyReference(ProviderCoordinateMixin):
                 f"Cannot serialize unresolved marketplace dependency "
                 f"'{self.marketplace_plugin_name}@{self.marketplace_name}'"
             )
+        if self.resource is not None:
+            entry: dict[str, object] = {"git": self.to_github_url()}
+            if self.virtual_path:
+                entry["path"] = self.virtual_path
+            if self.reference:
+                entry["ref"] = self.reference
+            if self.alias:
+                entry["alias"] = self.alias
+            if self.target_subset:
+                entry["targets"] = sorted(self.target_subset)
+            if self.host_type:
+                entry["type"] = self.host_type
+            if self.is_insecure:
+                entry["allow_insecure"] = self.allow_insecure
+            entry["resource"] = self.resource.to_dict()
+            return entry
         if self.source == "registry":
             entry: dict[str, object] = {"id": self.repo_url}
             if self.registry_name:

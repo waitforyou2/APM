@@ -242,7 +242,7 @@ def integrate_package_primitives(  # noqa: PLR0913
 
     from ..core.scope import InstallScope
 
-    _dispatch = get_dispatch_table()
+    _dispatch = dict(get_dispatch_table())
     result = {
         "prompts": 0,
         "agents": 0,
@@ -279,6 +279,20 @@ def integrate_package_primitives(  # noqa: PLR0913
         package_name,
     )
     targets = list(target_selection.targets)
+    resource = getattr(getattr(package_info, "dependency_ref", None), "resource", None)
+    from apm_cli.models.dependency.resource import ResourceSpec
+
+    if not isinstance(resource, ResourceSpec):
+        resource = None
+    if resource is not None and resource.is_custom:
+        from apm_cli.integration.custom_resource import (
+            custom_resource_dispatch,
+            custom_resource_target,
+        )
+
+        targets = [custom_resource_target(target, resource.kind) for target in targets]
+        _dispatch[resource.kind] = custom_resource_dispatch(resource.kind)
+        result[resource.kind] = 0
     allowed_dep_targets = set(target_selection.consumer_allowed_targets)
     dep_targets_active = target_selection.consumer_restriction_active
     _log_package_target_restriction(logger, target_selection)
@@ -404,6 +418,8 @@ def integrate_package_primitives(  # noqa: PLR0913
         "canvas": integrators.canvas,
         "skills": integrators.skill,
     }
+    if resource is not None and resource.is_custom:
+        _INTEGRATOR_KWARGS[resource.kind] = _dispatch[resource.kind].integrator_class()
 
     # Validate every converted instruction target before any primitive kind can
     # write. A rejected instruction must not leave prompts, agents, commands,

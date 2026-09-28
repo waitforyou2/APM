@@ -23,6 +23,7 @@ from ..models.dependency.reference import (
     build_canonical_dependency_string,
     build_dependency_unique_key,
 )
+from ..models.dependency.resource import ResourceSpec
 
 logger = logging.getLogger(__name__)
 
@@ -239,6 +240,7 @@ class LockedDependency:
     allow_insecure: bool = False  # True when the manifest explicitly allowed HTTP
     skill_subset: list[str] = field(default_factory=list)  # Sorted skill names for SKILL_BUNDLE
     target_subset: list[str] = field(default_factory=list)  # Audit-only consumer target subset
+    resource: ResourceSpec | None = None  # Explicit Git-directory deployment contract
 
     # Registry resolver fields (design §6.1).
     # Populated when source == "registry"; absent otherwise. resolved_hash is
@@ -413,6 +415,8 @@ class LockedDependency:
             result["skill_subset"] = sorted(self.skill_subset)
         if self.target_subset:
             result["target_subset"] = sorted(self.target_subset)
+        if self.resource is not None:
+            result["resource"] = self.resource.to_dict()
         if self.resolved_url:
             result["resolved_url"] = self.resolved_url
         if self.resolved_hash:
@@ -500,6 +504,7 @@ class LockedDependency:
             "allow_insecure",
             "skill_subset",
             "target_subset",
+            "resource",
             "resolved_url",
             "resolved_hash",
             "constraint",
@@ -549,6 +554,7 @@ class LockedDependency:
             allow_insecure=data.get("allow_insecure", False),
             skill_subset=list(data.get("skill_subset") or []),
             target_subset=list(data.get("target_subset") or []),
+            resource=(ResourceSpec.parse(data["resource"]) if "resource" in data else None),
             resolved_url=data.get("resolved_url"),
             resolved_hash=data.get("resolved_hash"),
             constraint=data.get("constraint"),
@@ -694,6 +700,11 @@ class LockedDependency:
             target_subset=sorted(dep_ref.target_subset)
             if isinstance(getattr(dep_ref, "target_subset", None), list)
             else [],
+            resource=(
+                dep_ref.resource
+                if isinstance(getattr(dep_ref, "resource", None), ResourceSpec)
+                else None
+            ),
             resolved_url=(
                 registry_resolution.resolved_url if registry_resolution is not None else None
             ),
@@ -745,6 +756,7 @@ class LockedDependency:
             source=self.source,
             skill_subset=sorted(self.skill_subset) if self.skill_subset else None,
             target_subset=sorted(self.target_subset) if self.target_subset else None,
+            resource=self.resource,
         ).with_derived_provider_coordinates()
 
 

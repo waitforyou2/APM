@@ -66,6 +66,7 @@ from .git_remote_ops import (
     sort_remote_refs,
 )
 from .github_rate_limit import GitHubThrottleError
+from .resource_projection import project_resource_directory
 from .transport_selection import (
     ProtocolPreference,
     TransportSelector,
@@ -1738,6 +1739,7 @@ class GitHubPackageDownloader:
         # Validate the extracted package (after temp dir is cleaned up)
         from ._shared import _validate_and_load_package
 
+        project_resource_directory(target_path, dep_ref.resource)
         validation_result = validate_apm_package(target_path)
         package = _validate_and_load_package(validation_result, target_path, dep_ref)
 
@@ -1931,6 +1933,7 @@ class GitHubPackageDownloader:
                         robust_copy2(src, dst)
 
                 # Validate, then return without cloning.
+                project_resource_directory(target_path, dep_ref.resource)
                 route_agent_plugin_package(target_path)
                 validation_result = validate_apm_package(target_path)
                 if validation_result.is_valid and validation_result.package:
@@ -2043,6 +2046,7 @@ class GitHubPackageDownloader:
         # Validate the downloaded package
         from ._shared import _validate_and_load_package
 
+        project_resource_directory(target_path, dep_ref.resource)
         validation_result = validate_apm_package(target_path)
         package = _validate_and_load_package(validation_result, target_path, dep_ref)
         package.resolved_commit = resolved_ref.resolved_commit
