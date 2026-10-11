@@ -104,7 +104,7 @@ function Find-Binary {
 # --- Prerequisites ---
 
 function Test-Prerequisite {
-    Write-TestHeader "Prerequisites: GitHub token"
+    Write-TestHeader "Prerequisites: optional GitHub authentication"
 
     Initialize-GitHubToken
     # Initialize-GitHubToken doesn't return failure — check tokens after setup
@@ -118,9 +118,14 @@ function Test-Prerequisite {
             Write-Success "GITHUB_TOKEN is set (GitHub Models access)"
         }
         return $true
-    } else {
-        Write-ErrorText "GitHub token setup failed"
+    } elseif ($env:APM_RUN_INFERENCE_TESTS -eq "1") {
+        Write-ErrorText "Inference tests require GITHUB_TOKEN or GITHUB_APM_PAT"
         return $false
+    } else {
+        # Public package installs and binary validation do not require a PAT.
+        # Keep GITHUB_API_TOKEN API-only; it is not a Models credential.
+        Write-Info "No GitHub PAT configured; validating public packages without inference"
+        return $true
     }
 }
 
@@ -492,7 +497,7 @@ function Main {
         Write-Host "Release-gated README flows passed"
         Write-Host ""
         Write-Host "Validated user journeys:"
-        Write-Host "  1. Prerequisites (GITHUB_TOKEN)"
+        Write-Host "  1. Prerequisites (GitHub authentication optional without inference)"
         Write-Host "  2. Binary accessibility"
         Write-Host "  3. Runtime setup (copilot)"
         Write-Host ""

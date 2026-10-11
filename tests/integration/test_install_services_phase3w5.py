@@ -306,6 +306,7 @@ class TestIntegratePackagePrimitives:
             "prompts": 0,
             "agents": 0,
             "knowledge": 0,
+            "workflows": 0,
             "skills": 0,
             "sub_skills": 0,
             "instructions": 0,

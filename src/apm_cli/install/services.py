@@ -269,16 +269,10 @@ def integrate_package_primitives(  # noqa: PLR0913
         scratch_root = Path(scratch_root).resolve()
         ensure_path_within(Path(project_root).resolve(), scratch_root)
 
-    # SECURITY: package intent may only narrow the consumer-authorized active
-    # target set. It never activates a target or expands dependency reach.
-    target_selection = resolve_effective_package_targets(
-        targets,
-        dep_target_subset,
-        package_info,
-        diagnostics,
-        package_name,
-    )
-    targets = list(target_selection.targets)
+    # Enrich profiles before authorization. This only adds a primitive mapping
+    # to an existing CAC profile; it must not activate targets or rewrite the
+    # resolver's final authorized target set before dispatch.
+    candidate_targets = targets
     resource = getattr(getattr(package_info, "dependency_ref", None), "resource", None)
     from apm_cli.models.dependency.resource import ResourceSpec
 
@@ -290,9 +284,20 @@ def integrate_package_primitives(  # noqa: PLR0913
             custom_resource_target,
         )
 
-        targets = [custom_resource_target(target, resource.kind) for target in targets]
+        candidate_targets = [custom_resource_target(target, resource.kind) for target in targets]
         _dispatch[resource.kind] = custom_resource_dispatch(resource.kind)
         result[resource.kind] = 0
+
+    # SECURITY: package intent may only narrow the consumer-authorized active
+    # target set. It never activates a target or expands dependency reach.
+    target_selection = resolve_effective_package_targets(
+        candidate_targets,
+        dep_target_subset,
+        package_info,
+        diagnostics,
+        package_name,
+    )
+    targets = list(target_selection.targets)
     allowed_dep_targets = set(target_selection.consumer_allowed_targets)
     dep_targets_active = target_selection.consumer_restriction_active
     _log_package_target_restriction(logger, target_selection)
