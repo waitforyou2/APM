@@ -9,6 +9,8 @@ Issue: https://github.com/microsoft/apm/issues/1203
 
 from __future__ import annotations
 
+import pytest
+
 from apm_cli.deps.lockfile import LockedDependency, LockFile
 from apm_cli.install.plan import (
     PlanEntry,
@@ -18,6 +20,7 @@ from apm_cli.install.plan import (
     render_plan_text,
 )
 from apm_cli.models.dependency.reference import DependencyReference
+from apm_cli.models.dependency.resource import ResourceSpec
 from apm_cli.models.dependency.types import GitReferenceType, ResolvedReference
 
 
@@ -191,6 +194,59 @@ class TestBuildUpdatePlan:
         assert entry.new_resolved_commit == "b" * 40
         assert entry.deployed_files == (".github/skills/x/SKILL.md",)
 
+    @pytest.mark.parametrize(
+        ("old_resource", "new_resource", "action"),
+        [
+            (None, None, "unchanged"),
+            (ResourceSpec("knowledge", "sdk"), ResourceSpec("knowledge", "sdk"), "unchanged"),
+            (ResourceSpec("skills", "sdk"), ResourceSpec("knowledge", "sdk"), "update"),
+            (ResourceSpec("knowledge", "sdk"), ResourceSpec("knowledge", "sdk-v2"), "update"),
+            (None, ResourceSpec("knowledge", "sdk"), "update"),
+            (ResourceSpec("knowledge", "sdk"), None, "update"),
+        ],
+    )
+    def test_resource_layout_changes_update_even_at_same_git_revision(
+        self, old_resource, new_resource, action
+    ):
+        """Changing deployment type/name requires reinstallation without a new SHA."""
+        lock = _new_lockfile()
+        locked = _locked("acme/assets", "main", "a" * 40)
+        locked.resource = old_resource
+        lock.add_dependency(locked)
+        dep = _resolved_dep("acme/assets", "main", "a" * 40)
+        dep.resource = new_resource
+
+        plan = build_update_plan(lock, [dep])
+
+        assert len(plan.entries) == 1
+        assert plan.entries[0].action == action
+        assert plan.has_changes is (action == "update")
+
+    @pytest.mark.parametrize("action", ["unchanged", "update", "remove", "retained"])
+    def test_same_action_entries_sort_by_display_name_not_host_qualified_key(self, action):
+        lock = _new_lockfile()
+        deps = []
+        for host, repo in (("a.example.com", "z/repo"), ("z.example.com", "a/repo")):
+            locked = _locked(repo, "main", "a" * 40)
+            locked.host = host
+            lock.add_dependency(locked)
+            if action in ("unchanged", "update"):
+                dep = _resolved_dep(repo, "main", ("a" if action == "unchanged" else "b") * 40)
+                dep.host = host
+                deps.append(dep)
+
+        plan = build_update_plan(
+            lock,
+            deps,
+            complete_resolved_dep_keys=lock.dependencies if action == "retained" else None,
+        )
+
+        expected_action = "unchanged" if action == "retained" else action
+        assert [(entry.action, entry.display_name, entry.dep_key) for entry in plan.entries] == [
+            (expected_action, "a/repo", "z.example.com/a/repo"),
+            (expected_action, "z/repo", "a.example.com/z/repo"),
+        ]
+
     def test_add_when_dep_not_in_lockfile(self):
         lock = _new_lockfile()
         deps = [_resolved_dep("https://github.com/new/r", "main", "c" * 40)]
@@ -315,6 +371,43 @@ class TestBuildUpdatePlan:
         actions_by_key = {entry.dep_key: entry.action for entry in plan.entries}
         assert {actions_by_key[key] for key in complete_keys} == {"unchanged"}
         assert actions_by_key[unreachable.get_unique_key()] == "remove"
+
+    def test_selective_update_preserves_full_locked_state_of_retained_dependency(self):
+        lock = _new_lockfile()
+        locked = LockedDependency(
+            repo_url="acme/assets",
+            host="git.example.com",
+            is_virtual=True,
+            virtual_path="knowledge/sdk",
+            resource=ResourceSpec("knowledge", "sdk"),
+            resolved_ref="v1.2.3",
+            resolved_commit="b" * 40,
+            content_hash="sha256:retained",
+            deployed_files=[".cac/knowledge/sdk/index.md", ".cac/knowledge/sdk/api.md"],
+            depth=2,
+        )
+        lock.add_dependency(locked)
+
+        plan = build_update_plan(
+            lock,
+            [],
+            complete_resolved_dep_keys=iter(["git.example.com/acme/assets/knowledge/sdk"]),
+        )
+
+        assert plan.entries == (
+            PlanEntry(
+                dep_key="git.example.com/acme/assets/knowledge/sdk",
+                action="unchanged",
+                display_name="acme/assets/knowledge/sdk",
+                old_resolved_ref="v1.2.3",
+                old_resolved_commit="b" * 40,
+                old_content_hash="sha256:retained",
+                new_resolved_ref="v1.2.3",
+                new_resolved_commit="b" * 40,
+                deployed_files=(".cac/knowledge/sdk/index.md", ".cac/knowledge/sdk/api.md"),
+            ),
+        )
+        assert plan.has_changes is False
 
     def test_summary_counts_aggregate_correctly(self):
         lock = _new_lockfile()
