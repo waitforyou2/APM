@@ -236,6 +236,11 @@ hiddenimports.extend(collect_submodules('rich._unicode_data'))
 # those string paths, so freeze every commands.* module into the PYZ.
 hiddenimports.extend(collect_submodules('apm_cli.commands'))
 
+# Optional administrator-owned Skill Link credentials. Never commit the private
+# module; freezing it removes setup, not the ability to extract its contents.
+if (repo_root / 'src/apm_cli/deps/registry/_skill_link_private.py').is_file():
+    hiddenimports.append('apm_cli.deps.registry._skill_link_private')
+
 # Modules to exclude to reduce binary size
 excludes = [
     # GUI frameworks - not needed for CLI

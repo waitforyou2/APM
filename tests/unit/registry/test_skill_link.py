@@ -23,6 +23,7 @@ from apm_cli.models.dependency.reference import DependencyReference
 
 BASE = "https://skills.example.test"
 SIGNED = "https://objects.example.test/package.zip?Signature=private-signature"
+W3_URL = "https://sso.example.test/api/ssoproxysvr/v2/w3tokens"
 
 
 def skill_zip(files=None):
@@ -62,6 +63,9 @@ def dependency(tmp_path, **kwargs):
 def credentials(monkeypatch):
     from apm_cli import config
 
+    # Never read an administrator's real private build profile during tests.
+    monkeypatch.setattr("apm_cli.deps.registry.skill_link_auth._load_private_profiles", lambda: {})
+
     monkeypatch.setattr(
         config,
         "_config_cache",
@@ -76,7 +80,7 @@ def credentials(monkeypatch):
 
 @pytest.fixture
 def transport(monkeypatch):
-    state = {"requests": [], "zip": skill_zip(), "links": 0, "downloads": 0}
+    state = {"requests": [], "zip": skill_zip(), "links": 0, "downloads": 0, "tokens": 0}
 
     def send(session, request, **kwargs):
         state["requests"].append(request)
@@ -84,17 +88,53 @@ def transport(monkeypatch):
         response.url = request.url
         response.status_code = 200
         response.request = request
-        if request.url.startswith(BASE):
+        if request.url == W3_URL:
+            state["tokens"] += 1
+            assert request.method == "POST"
+            profile = state["profile"]
+            assert json.loads(request.body) == {
+                "account": profile["account"],
+                "password": profile["password"],
+            }
+            assert request.headers["X-HW-ID"] == profile["hw_id"]
+            assert request.headers["X-HW-APPKEY"] == profile["hw_appkey"]
+            assert request.headers["Content-Type"] == "application/json"
+            assert not {"X-AUTH-TOKEN", "Authorization", "Cookie"} & set(request.headers)
+            response._content = json.dumps(
+                state.get(
+                    "token_json",
+                    {
+                        "status": "ok",
+                        "result": {
+                            "newToken": f"fresh-test-token-{state['tokens']}",
+                            "token": "old-token",
+                        },
+                    },
+                )
+            ).encode()
+            response.status_code = state.get("token_http_status", 200)
+            if response.status_code == 302:
+                response.headers["Location"] = SIGNED
+            if state.get("token_non_json"):
+                response._content = b"invalid JSON containing private data"
+        elif request.url.startswith(BASE):
             state["links"] += 1
+            assert request.method == "GET"
+            assert not request.body
             query = parse_qs(urlsplit(request.url).query)
             assert query == {"skillId": ["frontend-design"], "version": ["0.0.1"]}
             assert request.headers["Content-Type"] == "application/json"
-            for header, key in [
-                ("X-HW-ID", "HW_ID"),
-                ("X-HW-APPKEY", "HW_APPKEY"),
-                ("X-AUTH-TOKEN", "AUTH_TOKEN"),
-            ]:
-                assert request.headers[header] == f"private-{key}"
+            if "profile" in state:
+                assert request.headers["X-HW-ID"] == state["profile"]["hw_id"]
+                assert request.headers["X-HW-APPKEY"] == state["profile"]["hw_appkey"]
+                assert request.headers["X-AUTH-TOKEN"] == f"fresh-test-token-{state['tokens']}"
+            else:
+                for header, key in [
+                    ("X-HW-ID", "HW_ID"),
+                    ("X-HW-APPKEY", "HW_APPKEY"),
+                    ("X-AUTH-TOKEN", "AUTH_TOKEN"),
+                ]:
+                    assert request.headers[header] == f"private-{key}"
             response._content = json.dumps(
                 state.get(
                     "json",
@@ -108,6 +148,7 @@ def transport(monkeypatch):
             if response.status_code == 302:
                 response.headers["Location"] = SIGNED
         else:
+            assert request.url.startswith(SIGNED), "Unexpected mock HTTP destination"
             state["downloads"] += 1
             assert not {"X-HW-ID", "X-HW-APPKEY", "X-AUTH-TOKEN", "Authorization", "Cookie"} & set(
                 request.headers

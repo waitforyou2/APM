@@ -1,5 +1,8 @@
 # Skill Link v1 下载适配
 
+需要管理员统一配置公共账号并自动获取 Token 时，使用 [自动认证说明](skill-link-auto-token.zh-CN.md)。
+本页中的手动环境变量认证仍兼容；自动认证配置启用后按自动认证说明操作。
+
 基于 `https://github.com/waitforyou2/APM`，开发基线为
 `e4c02e2673b92d8bf885c107de594a64b7be5b03`。保留现有 Git 安装、typed resource、
 knowledge/workflows 和 `.cac` target；新增 `skill-link-v1` provider。

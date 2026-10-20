@@ -69,6 +69,8 @@ docs/superpowers/
 *.log
 .env.local
 .env.*.local
+# Administrator-only build credentials. Bundling does not make them secret.
+src/apm_cli/deps/registry/_skill_link_private.py
 AGENTS.md
 PRD.md
 PRD*.md

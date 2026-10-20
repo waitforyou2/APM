@@ -1,4 +1,4 @@
-"""Two-hop Skill Link client. API credentials never reach ZIP hosts."""
+"""Skill Link client with optional W3 token acquisition before each link request."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from urllib.parse import urljoin, urlsplit
 import requests
 
 from .auth import _credential_origin_matches, _sanitized
+from .skill_link_auth import W3AuthProfile, get_w3_profile, validate_header
 from .skill_link_config import link_url, normalize_base_url
 
 MAX_LINK_BYTES = 1024 * 1024
@@ -51,7 +52,15 @@ def _download_url(value: object) -> str:
     return value
 
 
-def _request(url: str, headers: dict[str, str], limit: int, label: str):
+def _request(
+    url: str,
+    headers: dict[str, str],
+    limit: int,
+    label: str,
+    *,
+    method: str = "GET",
+    json_body: dict | None = None,
+):
     """One bounded request; no redirects, cookies or implicit netrc credentials.
 
     A fresh session per hop prevents custom API headers/cookies crossing origins.
@@ -60,9 +69,11 @@ def _request(url: str, headers: dict[str, str], limit: int, label: str):
     """
     try:
         with requests.Session() as session:
-            with session.get(
+            with session.request(
+                method,
                 url,
                 headers=headers,
+                json=json_body,
                 auth=_NoImplicitAuth(),
                 stream=True,
                 allow_redirects=False,
@@ -83,7 +94,52 @@ def _request(url: str, headers: dict[str, str], limit: int, label: str):
         ) from None
 
 
+def _fetch_w3_token(profile: W3AuthProfile) -> str:
+    status, _, body = _request(
+        profile.token_url,
+        {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-HW-ID": profile.hw_id,
+            "X-HW-APPKEY": profile.hw_appkey,
+        },
+        MAX_LINK_BYTES,
+        "W3 token API",
+        method="POST",
+        json_body={"account": profile.account, "password": profile.password},
+    )
+    if status != 200:
+        raise SkillLinkError(f"W3 token API returned HTTP {status}; redirects are not followed")
+    try:
+        payload = json.loads(body)
+    except (ValueError, UnicodeError, RecursionError):
+        raise SkillLinkError("W3 token API returned invalid JSON") from None
+    if not isinstance(payload, dict) or payload.get("status") != "ok":
+        raise SkillLinkError("W3 token API reported authentication failure (expected status 'ok')")
+    result = payload.get("result")
+    token = result.get("newToken") if isinstance(result, dict) else None
+    try:
+        return validate_header(token, "result.newToken")
+    except ValueError:
+        raise SkillLinkError("W3 token API did not return a valid result.newToken") from None
+
+
 def credential_headers(registry_name: str, base_url: str) -> dict[str, str]:
+    try:
+        profile = get_w3_profile(registry_name, base_url)
+    except ValueError as exc:
+        raise SkillLinkError(str(exc)) from None
+    if profile is not None:
+        # Built-in service_url is the administrator's trust binding. Neither
+        # a workspace nor a stale environment token can override this profile.
+        token = _fetch_w3_token(profile)
+        return {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-HW-ID": profile.hw_id,
+            "X-HW-APPKEY": profile.hw_appkey,
+            "X-AUTH-TOKEN": token,
+        }
     if not _credential_origin_matches(registry_name, base_url):
         raise SkillLinkError(
             f"Bind credentials to this service first: apm config set registry.{registry_name}.url <base-url>"
