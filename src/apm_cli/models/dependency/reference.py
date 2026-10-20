@@ -128,6 +128,7 @@ class DependencyReference(ProviderCoordinateMixin):
     # lockfile (the lockfile uses URL-based identity per design section6.1).
     source: str | None = None
     registry_name: str | None = None
+    skill_link_url: str | None = None  # Opt-in provider base; persisted for lock replay.
 
     # Marketplace dependency fields (parsed from plugin.json dict format)
     is_marketplace: bool = False
@@ -361,6 +362,8 @@ class DependencyReference(ProviderCoordinateMixin):
         Returns:
             str: Unique key for this dependency
         """
+        if self.skill_link_url:
+            return f"skill-link-v1:{self.skill_link_url}/{self.repo_url}"
         return build_dependency_unique_key(
             self.repo_url,
             host=self.host,
@@ -1942,7 +1945,7 @@ class DependencyReference(ProviderCoordinateMixin):
                 f"Cannot serialize unresolved marketplace dependency "
                 f"'{self.marketplace_plugin_name}@{self.marketplace_name}'"
             )
-        if self.resource is not None:
+        if self.resource is not None and self.source != "registry":
             entry: dict[str, object] = {"git": self.to_github_url()}
             if self.virtual_path:
                 entry["path"] = self.virtual_path

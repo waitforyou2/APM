@@ -102,6 +102,9 @@ def locked_dependency_kwargs(draw: st.DrawFn) -> dict[str, Any]:
 
     kwargs: dict[str, Any] = {"repo_url": _repo_url(draw)}
     kwargs["materialization_repo_url"] = None
+    kwargs["skill_link_url"] = (
+        None  # Native fixture; custom-provider constraints tested separately.
+    )
     kwargs["alias"] = maybe(None, st.sampled_from([".safe", "safe.", "foo..bar", "my-skill.v2"]))
     kwargs["host"] = maybe(None, st.sampled_from(["gitlab.example.invalid", "git.example.invalid"]))
     kwargs["host_type"] = maybe(None, st.just("gitlab"))

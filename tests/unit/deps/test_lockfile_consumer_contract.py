@@ -52,6 +52,7 @@ _LOCKED_DEPENDENCY_VALUES = {
     "resource": ResourceSpec("knowledge", "consume-contract"),
     "resolved_url": "https://registry.example.invalid/consume-contract.tgz",
     "resolved_hash": f"sha256:{'e' * 64}",
+    "skill_link_url": None,  # Native registry fixture; custom provider tested separately.
     "constraint": "^1.0.0",
     "resolved_tag": "v1.2.3",
     "resolved_at": "2026-01-01T00:00:00+00:00",
@@ -82,6 +83,7 @@ _RECONSTRUCTED_LOCK_FIELDS = {
     "skill_subset",
     "target_subset",
     "resource",
+    "skill_link_url",
 }
 
 _REFERENCE_TO_LOCK_FIELD = {

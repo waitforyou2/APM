@@ -99,6 +99,10 @@ def _parse_v01_registries_block(
         body = {"url": value} if isinstance(value, str) else value
         if not isinstance(name, str) or not isinstance(body, dict):
             raise ValueError("OpenAPM v0.1 registry entries must be named strings or objects")
+        if "provider" in body:
+            raise ValueError(
+                "Custom registry providers require the working-draft manifest (omit $schema)"
+            )
         url = body.get("url")
         if not isinstance(url, str) or not url.startswith(("https://", "http://")):
             raise ValueError(f"OpenAPM v0.1 registry {name!r} requires an HTTP(S) url")
@@ -192,11 +196,18 @@ def _parse_registries_block(
                 f"Registry {name!r} URL must start with https:// or http:// (got {url!r})"
             )
         # Reject any unknown keys to catch typos early.
-        unknown = set(body.keys()) - {"url"}
+        unknown = set(body.keys()) - {"url", "provider"}
         if unknown:
             raise ValueError(
-                f"Registry {name!r} has unknown fields: {sorted(unknown)} (known fields: ['url'])"
+                f"Registry {name!r} has unknown fields: {sorted(unknown)} (known fields: ['url', 'provider'])"
             )
+        provider = body.get("provider")
+        if provider is not None:
+            from ..deps.registry.skill_link_config import PROVIDER, normalize_base_url
+
+            if provider != PROVIDER:
+                raise ValueError(f"Unknown registry provider: {provider!r}")
+            url = normalize_base_url(url)
         registries_map[name] = url
 
     default_name: str | None = None
@@ -333,6 +344,7 @@ class APMPackage:
     # Top-level ``registries:`` block per docs/proposals/registry-api.md §3.1.
     # Maps registry name -> base URL. None when no ``registries:`` block is present.
     registries: dict[str, str] | None = None
+    registry_providers: dict[str, str] | None = None
     # Value of ``registries.default:`` -- routes unscoped deps to this registry.
     default_registry: str | None = None
     manifest_contract: str = "working-draft"
@@ -361,7 +373,9 @@ class APMPackage:
         )
 
     @classmethod
-    def _parse_dependency_dict(cls, raw_deps: dict, label: str = "") -> dict:
+    def _parse_dependency_dict(
+        cls, raw_deps: dict, label: str = "", *, registries: dict | None = None
+    ) -> dict:
         """Parse a dependencies or devDependencies dict from apm.yml.
 
         Args:
@@ -385,7 +399,12 @@ class APMPackage:
                             raise ValueError(f"Invalid {label}APM dependency '{dep_entry}': {e}")  # noqa: B904
                     elif isinstance(dep_entry, dict):
                         try:
-                            parsed_deps.append(DependencyReference.parse_from_dict(dep_entry))
+                            from ..deps.registry.skill_link_config import parse_provider_entry
+
+                            dep = parse_provider_entry(dep_entry, registries)
+                            parsed_deps.append(
+                                dep or DependencyReference.parse_from_dict(dep_entry)
+                            )
                         except ValueError as e:
                             raise ValueError(f"Invalid {label}APM dependency {dep_entry}: {e}")  # noqa: B904
                 parsed[dep_type] = parsed_deps
@@ -497,7 +516,9 @@ class APMPackage:
                     "    apm:\n"
                     "      - owner/repo"
                 )
-            dependencies = cls._parse_dependency_dict(raw_deps, label="")
+            dependencies = cls._parse_dependency_dict(
+                raw_deps, label="", registries=data.get("registries")
+            )
 
         # Parse devDependencies (same structure as dependencies)
         dev_dependencies = None
@@ -512,7 +533,9 @@ class APMPackage:
                     "    apm:\n"
                     "      - owner/repo"
                 )
-            dev_dependencies = cls._parse_dependency_dict(raw_dev_deps, label="dev ")
+            dev_dependencies = cls._parse_dependency_dict(
+                raw_dev_deps, label="dev ", registries=data.get("registries")
+            )
 
         # Merge user/policy registry URLs and config.json default routing.
         from ..deps.registry.config_loader import resolve_effective_registries
@@ -534,6 +557,11 @@ class APMPackage:
         if default_registry:
             for dep_list in _iter_apm_dependency_lists(dependencies, dev_dependencies):
                 _route_unscoped_to_default_registry(dep_list, default_registry)
+
+        from ..deps.registry.skill_link_config import validate_provider_routing
+
+        for dep_list in _iter_apm_dependency_lists(dependencies, dev_dependencies):
+            validate_provider_routing(dep_list, data.get("registries"))
 
         # Parse allowExecutables block (npm v12-style approval gate).
         from ..security.executables import parse_allow_executables
@@ -614,6 +642,12 @@ class APMPackage:
             canonical_targets=canonical_targets,
             type=pkg_type,
             includes=includes,
+            registry_providers={
+                key: value["provider"]
+                for key, value in (data.get("registries") or {}).items()
+                if isinstance(value, dict) and "provider" in value
+            }
+            or None,
             registries=registries,
             default_registry=default_registry,
             manifest_contract=manifest_contract.value,

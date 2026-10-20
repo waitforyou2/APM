@@ -248,6 +248,7 @@ class LockedDependency:
     # from resolved_url and re-verified against this digest.
     resolved_url: str | None = None
     resolved_hash: str | None = None
+    skill_link_url: str | None = None
 
     # Git-source semver resolution fields (issue #1488).
     # Populated when a git-source dependency carried a semver range
@@ -287,6 +288,14 @@ class LockedDependency:
 
     def __post_init__(self) -> None:
         """Separate canonical lock identity from materialization spelling."""
+        if self.skill_link_url is not None:
+            from .registry.skill_link_config import normalize_base_url, validate_version
+
+            self.skill_link_url = normalize_base_url(self.skill_link_url)
+            if self.source != "registry":
+                raise ValueError("skill_link_url requires source: registry")
+            ResourceSpec.parse({"kind": "skills", "name": self.repo_url})
+            validate_version(self.version)
         try:
             self.alias = parse_alias_override(self.alias)
         except ValueError as exc:
@@ -322,6 +331,8 @@ class LockedDependency:
 
     def get_unique_key(self) -> str:
         """Returns unique key for this dependency."""
+        if self.skill_link_url:
+            return f"skill-link-v1:{self.skill_link_url}/{self.repo_url}"
         return build_dependency_unique_key(
             self.repo_url,
             host=self.host,
@@ -417,6 +428,8 @@ class LockedDependency:
             result["target_subset"] = sorted(self.target_subset)
         if self.resource is not None:
             result["resource"] = self.resource.to_dict()
+        if self.skill_link_url:
+            result["skill_link_url"] = self.skill_link_url
         if self.resolved_url:
             result["resolved_url"] = self.resolved_url
         if self.resolved_hash:
@@ -507,6 +520,7 @@ class LockedDependency:
             "resource",
             "resolved_url",
             "resolved_hash",
+            "skill_link_url",
             "constraint",
             "resolved_tag",
             "resolved_at",
@@ -557,6 +571,7 @@ class LockedDependency:
             resource=(ResourceSpec.parse(data["resource"]) if "resource" in data else None),
             resolved_url=data.get("resolved_url"),
             resolved_hash=data.get("resolved_hash"),
+            skill_link_url=data.get("skill_link_url"),
             constraint=data.get("constraint"),
             resolved_tag=data.get("resolved_tag"),
             resolved_at=data.get("resolved_at"),
@@ -705,6 +720,9 @@ class LockedDependency:
                 if isinstance(getattr(dep_ref, "resource", None), ResourceSpec)
                 else None
             ),
+            skill_link_url=(
+                dep_ref.skill_link_url if isinstance(dep_ref.skill_link_url, str) else None
+            ),
             resolved_url=(
                 registry_resolution.resolved_url if registry_resolution is not None else None
             ),
@@ -754,6 +772,7 @@ class LockedDependency:
             is_insecure=self.is_insecure,
             allow_insecure=self.allow_insecure,
             source=self.source,
+            skill_link_url=self.skill_link_url,
             skill_subset=sorted(self.skill_subset) if self.skill_subset else None,
             target_subset=sorted(self.target_subset) if self.target_subset else None,
             resource=self.resource,
@@ -991,7 +1010,7 @@ class LockFile:
         self,
         path: Path,
         *,
-        existing_lockfile: LockFile | None | _ExistingLockfileUnset = (_EXISTING_LOCKFILE_UNSET),
+        existing_lockfile: LockFile | _ExistingLockfileUnset | None = (_EXISTING_LOCKFILE_UNSET),
     ) -> None:
         """Write lock file to disk, preserving legacy timestamp behavior.
 
@@ -1152,7 +1171,7 @@ class LockFile:
         self,
         path: Path,
         *,
-        existing_lockfile: LockFile | None | _ExistingLockfileUnset = (_EXISTING_LOCKFILE_UNSET),
+        existing_lockfile: LockFile | _ExistingLockfileUnset | None = (_EXISTING_LOCKFILE_UNSET),
     ) -> None:
         """Save lock file to disk (alias for write)."""
         self.write(path, existing_lockfile=existing_lockfile)

@@ -512,8 +512,11 @@ def _resolve_dependencies(
                     if existing_lockfile
                     else None
                 )
+                from apm_cli.deps.registry.skill_link_config import can_replay_skill_link
+
+                _skill_replay = can_replay_skill_link(dep_ref, _locked_reg)
                 if (
-                    not update_refs
+                    (not update_refs or _skill_replay)
                     and _locked_reg
                     and _locked_reg.resolved_url
                     and _locked_reg.resolved_hash
@@ -521,7 +524,9 @@ def _resolve_dependencies(
                 ):
                     from apm_cli.drift import detect_ref_change as _detect_ref_change
 
-                    if not _detect_ref_change(dep_ref, _locked_reg, update_refs=False):
+                    if _skill_replay or not _detect_ref_change(
+                        dep_ref, _locked_reg, update_refs=False
+                    ):
                         registry_resolver.download_from_lockfile(
                             dep_ref,
                             replacement_path,

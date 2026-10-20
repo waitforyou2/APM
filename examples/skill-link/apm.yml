@@ -1,0 +1,39 @@
+# Replace the service base URL; never put credentials in this file.
+name: design-workspace
+version: "0.1.0"
+description: DME设计作业空间
+product:
+  name: DME
+  version: "DME V100R025C10"
+stage: design
+targets: [cac]
+
+registries:
+  corp-skills:
+    provider: skill-link-v1
+    url: https://skills.example.com
+  default: corp-skills
+
+dependencies:
+  apm:
+    - id: frontend-design
+      version: "0.0.1"
+      # alias: frontend-design  # Optional; defaults to id.
+
+    # Git and API sources coexist. Replace this URL/path with your real asset.
+    - git: https://codehub.example.com/team/internal-agent-assets.git
+      ref: main
+      path: .apm/agents/security-auditor
+      alias: security-auditor
+      targets: [cac]
+      resource:
+        kind: agents
+        name: security-auditor
+
+# Workspace metadata stays with the existing consumer system.
+# APM installs resources; it does not execute workspace workflow sequences.
+workflowSequence: []
+relations:
+  agents:
+    security-auditor:
+      usesSkills: [frontend-design]

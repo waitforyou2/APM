@@ -303,6 +303,9 @@ class RegistryPackageResolver:
                 f"{dep_ref.repo_url!r} (source={dep_ref.source!r})"
             )
 
+        if dep_ref.skill_link_url:
+            return self._download_skill_link(dep_ref, target_path)
+
         owner, repo = _split_owner_repo(dep_ref.repo_url)
         base_url = self._resolve_registry_url(dep_ref.registry_name)
         client = self._build_client(dep_ref.registry_name, base_url)
@@ -371,6 +374,15 @@ class RegistryPackageResolver:
         locked version.  ``apm update`` bypasses this path entirely via
         ``update_refs=True``.
         """
+        if dep_ref.skill_link_url:
+            return self._download_skill_link(
+                dep_ref,
+                target_path,
+                resolved_url=resolved_url,
+                resolved_hash=resolved_hash,
+                version=version,
+            )
+
         registry_name = dep_ref.registry_name
         base_url = self._resolve_registry_url(registry_name)
         client = self._build_client(registry_name, base_url)
@@ -449,6 +461,17 @@ class RegistryPackageResolver:
         return package_info
 
     # ------------------------------------------------------------------
+    def _download_skill_link(self, dep_ref, target_path, **locked):
+        from .skill_link_resolver import download_skill_link
+
+        base_url = self._resolve_registry_url(dep_ref.registry_name)
+        try:
+            info, resolution = download_skill_link(dep_ref, target_path, base_url, **locked)
+        except ValueError as exc:
+            raise RegistryResolutionError(str(exc)) from None
+        self.last_resolutions[dep_ref.get_unique_key()] = resolution
+        return info
+
     def _raise_for_http(
         self,
         exc: RegistryError,

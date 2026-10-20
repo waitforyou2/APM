@@ -682,13 +682,16 @@ class FreshDependencySource(DependencySource):
                 # Lockfile replay (npm install model): fetch directly from the
                 # locked URL and verify against the locked hash when available
                 # and the manifest range still covers the locked version.
+                from apm_cli.deps.registry.skill_link_config import can_replay_skill_link
+
+                _skill_replay = can_replay_skill_link(download_ref, dep_locked_chk)
                 if (
-                    not ctx.update_refs
+                    (not ctx.update_refs or _skill_replay)
                     and dep_locked_chk
                     and dep_locked_chk.resolved_url
                     and dep_locked_chk.resolved_hash
                     and dep_locked_chk.version
-                    and not ref_changed
+                    and (not ref_changed or _skill_replay)
                 ):
                     package_info = _registry_resolver.download_from_lockfile(
                         download_ref,

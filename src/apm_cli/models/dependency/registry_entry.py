@@ -19,7 +19,9 @@ from .subsets import parse_skill_subset, parse_target_subset
 _ID_SEGMENT_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+$")
 
 
-def parse_registry_object_entry(dependency_reference_cls: Any, entry: dict) -> Any:
+def parse_registry_object_entry(
+    dependency_reference_cls: Any, entry: dict, *, allow_single_id: bool = False
+) -> Any:
     """Parse the object-form registry entry per §3.2.
 
     Required keys:
@@ -54,7 +56,7 @@ def parse_registry_object_entry(dependency_reference_cls: Any, entry: dict) -> A
             "non-empty 'owner/repo' string"
         )
     pkg_id = pkg_id.strip()
-    if "/" not in pkg_id:
+    if "/" not in pkg_id and not allow_single_id:
         raise ValueError(f"Object-form registry entry: 'id' must be 'owner/repo', got {pkg_id!r}")
 
     raw_path = entry.get("path")

@@ -106,6 +106,10 @@ def publish_cmd(ctx, registry_name, package_id, zip_path, dry_run, verbose):
     # ----------------------------------------------------------- registry
     registries: dict[str, str] = pkg.registries or {}
     registry_name = _resolve_registry_name(registry_name, registries)
+    if (pkg.registry_providers or {}).get(registry_name) == "skill-link-v1":
+        raise click.ClickException(
+            "skill-link-v1 is download-only; this API does not support publishing"
+        )
     base_url = registries[registry_name]
 
     # ----------------------------------------------------------- zip archive

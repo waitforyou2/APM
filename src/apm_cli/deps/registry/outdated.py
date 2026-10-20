@@ -161,13 +161,17 @@ def check_registry_locked_dep(
     package_name = locked.get_unique_key()
     current = locked.version or ""
 
-    if ctx is None:
+    if ctx is None or locked.skill_link_url:
         return OutdatedRow(
             package=package_name,
             current=current or "(none)",
             latest="-",
             status="unknown",
-            source="registry",
+            source=(
+                "skill-link-v1 (exact version; no version-list API)"
+                if locked.skill_link_url
+                else "registry"
+            ),
         )
 
     if not is_package_registry_enabled():
