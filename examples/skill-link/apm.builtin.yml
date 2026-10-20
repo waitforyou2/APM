@@ -1,0 +1,10 @@
+# Requires the administrator's built-in corp-skills profile and the registries feature flag.
+name: design-workspace
+version: "0.1.0"
+description: DME设计作业空间
+targets:
+  - cac
+dependencies:
+  apm:
+    - id: frontend-design
+      version: "0.0.1"

@@ -49,6 +49,17 @@ def validate_header(value: object, label: str) -> str:
     return value
 
 
+def get_builtin_service_url(registry_name: str) -> str | None:
+    """Read only the public routing address; never authenticate while parsing YAML."""
+    profiles = _load_private_profiles()
+    if registry_name not in profiles:
+        return None
+    raw = profiles[registry_name]
+    if not isinstance(raw, dict) or not isinstance(raw.get("service_url"), str):
+        raise ValueError("Administrator Skill Link service_url must be a string")
+    return normalize_base_url(raw["service_url"])
+
+
 def get_w3_profile(registry_name: str, base_url: str) -> W3AuthProfile | None:
     """Return an exact-origin-bound build profile, or keep legacy environment auth.
 

@@ -6,6 +6,7 @@ import re
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
 PROVIDER = "skill-link-v1"
+BUILTIN_REGISTRY = "corp-skills"
 ENDPOINT = "/external/skills/link/v1/get"
 _VERSION = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
@@ -76,11 +77,43 @@ def parse_skill_link_entry(entry: dict, registry_name: str, base_url: str):
     return dep
 
 
-def parse_provider_entry(entry: dict, registries: dict | None):
-    """Return a custom dependency, or None to preserve native parser behavior.
+def builtin_registry_block(data: dict) -> dict | None:
+    """Supply a public default for id objects only when registries is omitted.
 
-    Provider declarations are project-local. User config only binds credentials;
-    it cannot silently reinterpret a project's native registry dependencies.
+    Explicit blocks (including empty/null) keep their existing semantics. Pure
+    Git manifests never load private configuration or enable registry behavior.
+    The caller limits this extension to working-draft manifests.
+    """
+    if "registries" in data:
+        return None
+    needs_builtin = False
+    for key in ("dependencies", "devDependencies"):
+        bucket = data.get(key)
+        entries = bucket.get("apm") if isinstance(bucket, dict) else None
+        if not isinstance(entries, list):
+            continue
+        if any(
+            isinstance(entry, dict)
+            and "id" in entry
+            and entry.get("registry", BUILTIN_REGISTRY) == BUILTIN_REGISTRY
+            for entry in entries
+        ):
+            needs_builtin = True
+            break
+    if not needs_builtin:
+        return None
+    from .skill_link_auth import get_builtin_service_url
+
+    url = get_builtin_service_url(BUILTIN_REGISTRY)
+    if url is None:
+        return None
+    return {BUILTIN_REGISTRY: {"provider": PROVIDER, "url": url}, "default": BUILTIN_REGISTRY}
+
+
+def parse_provider_entry(entry: dict, registries: dict | None):
+    """Use an explicit or administrator-supplied provider declaration.
+
+    User config only binds credentials; it cannot silently change the protocol.
     """
     if not registries or not ({"id", "registry"} & entry.keys()):
         return None

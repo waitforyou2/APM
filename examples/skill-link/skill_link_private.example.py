@@ -7,7 +7,7 @@ contents in chat. An EXE with embedded credentials is not a secret store.
 PROFILES = {
     "corp-skills": {
         # Trusted download-link service base, including the gateway prefix.
-        "service_url": "https://apigw-cn-south02.bzz.com/api/mcpService",
+        "service_url": "https://apigw-cn-south02.huawei.com/api/mcpService",
         # Full token endpoint; this is a DIFFERENT service from service_url.
         "token_url": "https://apigw-cn-south.huawei.com/api/ssoproxysvr/v2/w3tokens",
         "hw_id": "",

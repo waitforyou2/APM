@@ -3,6 +3,8 @@
 这是已经跑通的 `skill-link-v1` 下载方式的增量更新，Git 下载、资源关系、锁文件和 `.cac` 分发继续使用原流程。
 apm.yml 无需添加账号、密码、请求头或登录接口字段。
 
+安装默认下载源更新后，`registries` 也可以省略，详见 [内置默认下载源](skill-link-builtin-registry.zh-CN.md)。
+
 ## 请求流程
 
 每次确实需要调用下载链接接口时，按以下顺序执行：
@@ -38,7 +40,7 @@ notepad $privateFile
 ```python
 PROFILES = {
     "corp-skills": {
-        "service_url": "https://apigw-cn-south02.bzz.com/api/mcpService",
+        "service_url": "https://apigw-cn-south02.huawei.com/api/mcpService",
         "token_url": "https://apigw-cn-south.huawei.com/api/ssoproxysvr/v2/w3tokens",
         "hw_id": "",
         "hw_appkey": "",
@@ -73,7 +75,7 @@ PyInstaller 会在它存在时把它包含到构建中。更改这些固定值�
 下面的检查只验证私有配置能否正确加载，不发起网络请求，也不输出凭据：
 
 ```powershell
-uv run python -c "from apm_cli.deps.registry.skill_link_auth import get_w3_profile; p=get_w3_profile('corp-skills', 'https://apigw-cn-south02.bzz.com/api/mcpService'); assert p is not None, 'Private profile is missing'; print('Automatic token profile: OK')"
+uv run python -c "from apm_cli.deps.registry.skill_link_auth import get_w3_profile; p=get_w3_profile('corp-skills', 'https://apigw-cn-south02.huawei.com/api/mcpService'); assert p is not None, 'Private profile is missing'; print('Automatic token profile: OK')"
 ```
 
 看到 `Automatic token profile: OK` 后执行：

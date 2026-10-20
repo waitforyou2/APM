@@ -342,7 +342,7 @@ class APMPackage:
     includes: str | list[str] | None = None  # Include-only manifest: 'auto' or list of repo paths
 
     # Top-level ``registries:`` block per docs/proposals/registry-api.md §3.1.
-    # Maps registry name -> base URL. None when no ``registries:`` block is present.
+    # Maps registry name -> base URL, including an applicable built-in default.
     registries: dict[str, str] | None = None
     registry_providers: dict[str, str] | None = None
     # Value of ``registries.default:`` -- routes unscoped deps to this registry.
@@ -481,7 +481,7 @@ class APMPackage:
         source_manifest = manifest_path or package_path / "apm.yml"
         resolved_source = source_path.resolve() if source_path is not None else None
 
-        from .manifest_contract import negotiate_manifest_contract
+        from .manifest_contract import ManifestContract, negotiate_manifest_contract
 
         manifest_contract = negotiate_manifest_contract(data)
 
@@ -495,9 +495,21 @@ class APMPackage:
         if not isinstance(data["version"], str) or not data["version"].strip():
             raise ValueError("Invalid apm.yml identity: 'version' must be a non-empty string")
 
+        # The optional enterprise default is a runtime projection, never a
+        # mutation of the authoring YAML. Explicit blocks always take precedence.
+        from ..deps.registry.skill_link_config import builtin_registry_block
+
+        builtin_registries = (
+            builtin_registry_block(data)
+            if manifest_contract is ManifestContract.WORKING_DRAFT
+            else None
+        )
+        registry_data = {**data, "registries": builtin_registries} if builtin_registries else data
+        provider_registries = registry_data.get("registries")
+
         # Top-level ``registries:`` block per design §3.1.
         registries, default_registry = _parse_registries_block(
-            data,
+            registry_data,
             source_manifest,
             manifest_contract,
             create_config=create_config,
@@ -517,7 +529,7 @@ class APMPackage:
                     "      - owner/repo"
                 )
             dependencies = cls._parse_dependency_dict(
-                raw_deps, label="", registries=data.get("registries")
+                raw_deps, label="", registries=provider_registries
             )
 
         # Parse devDependencies (same structure as dependencies)
@@ -534,7 +546,7 @@ class APMPackage:
                     "      - owner/repo"
                 )
             dev_dependencies = cls._parse_dependency_dict(
-                raw_dev_deps, label="dev ", registries=data.get("registries")
+                raw_dev_deps, label="dev ", registries=provider_registries
             )
 
         # Merge user/policy registry URLs and config.json default routing.
@@ -553,15 +565,16 @@ class APMPackage:
                 create_config=create_config,
             )
 
-        # Route unscoped deps to the effective default registry when configured.
-        if default_registry:
+        # Only explicit/user defaults reinterpret legacy Git shorthands. The
+        # built-in default has already routed id objects during parsing.
+        if default_registry and not builtin_registries:
             for dep_list in _iter_apm_dependency_lists(dependencies, dev_dependencies):
                 _route_unscoped_to_default_registry(dep_list, default_registry)
 
         from ..deps.registry.skill_link_config import validate_provider_routing
 
         for dep_list in _iter_apm_dependency_lists(dependencies, dev_dependencies):
-            validate_provider_routing(dep_list, data.get("registries"))
+            validate_provider_routing(dep_list, provider_registries)
 
         # Parse allowExecutables block (npm v12-style approval gate).
         from ..security.executables import parse_allow_executables
@@ -644,7 +657,7 @@ class APMPackage:
             includes=includes,
             registry_providers={
                 key: value["provider"]
-                for key, value in (data.get("registries") or {}).items()
+                for key, value in (provider_registries or {}).items()
                 if isinstance(value, dict) and "provider" in value
             }
             or None,
