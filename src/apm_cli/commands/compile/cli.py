@@ -9,12 +9,14 @@ from typing import TYPE_CHECKING
 
 import click
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 if TYPE_CHECKING:
     from ...core.target_detection import CompileTargetType
     from ...integration.targets import TargetProfile
 
 from ...compilation import AgentsCompiler, CompilationConfig
-from ...constants import AGENTS_MD_FILENAME, APM_DIR, APM_MODULES_DIR, APM_YML_FILENAME
+from ...constants import AGENTS_MD_FILENAME, APM_DIR, APM_MODULES_DIR
 from ...core.command_logger import CommandLogger
 from ...core.target_catalog import (
     TARGET_CAPABILITIES,
@@ -341,7 +343,7 @@ def _resolve_effective_target(
 
     _root = source_root or Path(".")
     config_target = None
-    apm_yml_path = _root / APM_YML_FILENAME
+    apm_yml_path = project_manifest_path(_root)
     if apm_yml_path.exists():
         apm_pkg = APMPackage.from_apm_yml(apm_yml_path)
         config_target = apm_pkg.target
@@ -433,7 +435,7 @@ def _handle_global_flag(dry_run: bool, logger: CommandLogger) -> int:
     try:
         compile_targets, declared_targets = _global_compile_targets(source_root)
     except TargetResolutionError as exc:
-        display_path = _display_user_path(source_root / APM_YML_FILENAME)
+        display_path = _display_user_path(project_manifest_path(source_root))
         summary = str(exc).split("\n\nFix with one of:", maxsplit=1)[0]
         logger.error(
             f"{summary}\n\nFix {display_path} and rerun 'apm compile -g'.",
@@ -441,14 +443,14 @@ def _handle_global_flag(dry_run: bool, logger: CommandLogger) -> int:
         )
         return 1
     except yaml.YAMLError as exc:
-        display_path = _display_user_path(source_root / APM_YML_FILENAME)
+        display_path = _display_user_path(project_manifest_path(source_root))
         logger.error(
             f"Failed to parse {display_path}: {exc}. Fix the manifest and rerun 'apm compile -g'.",
             symbol="error",
         )
         return 1
     except OSError as exc:
-        display_path = _display_user_path(source_root / APM_YML_FILENAME)
+        display_path = _display_user_path(project_manifest_path(source_root))
         logger.error(
             f"Failed to read {display_path}: {exc}. "
             "Ensure it is a readable YAML file and rerun 'apm compile -g'.",
@@ -563,7 +565,7 @@ def _validate_project(
     """
     from ...compilation.constitution import find_constitution
 
-    if not (source_root / APM_YML_FILENAME).exists():
+    if not (project_manifest_path(source_root)).exists():
         logger.error("Not an APM project - no apm.yml found")
         logger.progress(" To initialize an APM project, run:")
         logger.progress("   apm init")
@@ -640,7 +642,7 @@ def _run_validation_mode(logger: CommandLogger, verbose: bool, source_root: Path
     try:
         from ...models.apm_package import APMPackage
 
-        apm_pkg = APMPackage.from_apm_yml(source_root / APM_YML_FILENAME)
+        apm_pkg = APMPackage.from_apm_yml(project_manifest_path(source_root))
         mcp_count = len(apm_pkg.get_mcp_dependencies())
         if mcp_count > 0:
             logger.progress(f"  * {mcp_count} MCP dependencies")

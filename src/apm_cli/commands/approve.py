@@ -23,6 +23,7 @@ from pathlib import Path
 
 import click
 
+from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.install.locking import serialized_lifecycle
 
 from ..core.command_logger import CommandLogger
@@ -44,7 +45,7 @@ _POLICY_HASH_MISMATCH_WARNING = (
 
 def _find_manifest() -> Path:
     """Return the project's ``apm.yml`` path or exit."""
-    manifest = Path.cwd() / "apm.yml"
+    manifest = project_manifest_path()
     if not manifest.is_file():
         _rich_error("No apm.yml found in the current directory.")
         sys.exit(1)

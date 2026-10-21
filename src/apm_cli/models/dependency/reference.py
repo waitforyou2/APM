@@ -128,6 +128,7 @@ class DependencyReference(ProviderCoordinateMixin):
     # lockfile (the lockfile uses URL-based identity per design section6.1).
     source: str | None = None
     registry_name: str | None = None
+    compact_resource: bool = False  # Authored as Workspace id/kind, not legacy resource.
     skill_link_url: str | None = None  # Opt-in provider base; persisted for lock replay.
 
     # Marketplace dependency fields (parsed from plugin.json dict format)
@@ -821,6 +822,14 @@ class DependencyReference(ProviderCoordinateMixin):
                 marketplace_plugin_name=name,
                 marketplace_version_spec=version_spec,
             )
+
+        # A typed Git id is a Workspace identity, not a registry selector.
+        if "git" in entry and "kind" in entry:
+            from .workspace_resource import normalize_compact_git
+
+            dep = cls.parse_from_dict(normalize_compact_git(entry))
+            dep.compact_resource = True
+            return dep
 
         # Object-form registry package -- design section3.2.
         # Discriminated by the ``registry:`` or ``id:`` key (``registry:`` is
@@ -1945,6 +1954,8 @@ class DependencyReference(ProviderCoordinateMixin):
                 f"Cannot serialize unresolved marketplace dependency "
                 f"'{self.marketplace_plugin_name}@{self.marketplace_name}'"
             )
+        from .workspace_resource import compact_entry
+
         if self.resource is not None and self.source != "registry":
             entry: dict[str, object] = {"git": self.to_github_url()}
             if self.virtual_path:
@@ -1960,7 +1971,7 @@ class DependencyReference(ProviderCoordinateMixin):
             if self.is_insecure:
                 entry["allow_insecure"] = self.allow_insecure
             entry["resource"] = self.resource.to_dict()
-            return entry
+            return compact_entry(self, entry)
         if self.source == "registry":
             entry: dict[str, object] = {"id": self.repo_url}
             if self.registry_name:
@@ -1974,7 +1985,7 @@ class DependencyReference(ProviderCoordinateMixin):
                 entry["skills"] = sorted(self.skill_subset)
             if self.target_subset:
                 entry["targets"] = sorted(self.target_subset)
-            return entry
+            return compact_entry(self, entry)
         if self.is_local and self.local_path:
             if self.skill_subset or self.target_subset or self.alias:
                 return local_path_apm_yml_entry(

@@ -49,6 +49,7 @@ _LOCKED_DEPENDENCY_VALUES = {
     "allow_insecure": True,
     "skill_subset": ["alpha", "beta"],
     "target_subset": ["copilot"],
+    "compact_resource": True,
     "resource": ResourceSpec("knowledge", "consume-contract"),
     "resolved_url": "https://registry.example.invalid/consume-contract.tgz",
     "resolved_hash": f"sha256:{'e' * 64}",
@@ -83,6 +84,7 @@ _RECONSTRUCTED_LOCK_FIELDS = {
     "skill_subset",
     "target_subset",
     "resource",
+    "compact_resource",
     "skill_link_url",
 }
 

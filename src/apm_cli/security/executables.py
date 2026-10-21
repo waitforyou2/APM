@@ -25,6 +25,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 # Executable type constants used as keys in the allowExecutables block.
 EXEC_TYPE_HOOKS = "hooks"
 EXEC_TYPE_MCP = "mcp"
@@ -931,7 +933,7 @@ def exec_trust_context_for_project(
     from apm_cli.utils.yaml_io import load_yaml
 
     project_data: dict[str, Any] | None = None
-    manifest_path = project_root / "apm.yml"
+    manifest_path = project_manifest_path(project_root)
     if manifest_path.is_file():
         data = load_yaml(manifest_path)
         if isinstance(data, dict):

@@ -11,6 +11,8 @@ from dataclasses import fields, is_dataclass, replace
 from pathlib import Path, PureWindowsPath
 from typing import TYPE_CHECKING, NoReturn, Optional, Protocol
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from ..bundle.local_bundle import route_agent_plugin_package
 from ..models.apm_package import APMPackage, DependencyReference
 from ..models.validation import PackageType, detect_package_type, validate_apm_package
@@ -257,7 +259,7 @@ class APMDependencyResolver:
             self._apm_modules_dir = project_root / "apm_modules"
 
         # Load the root package
-        apm_yml_path = project_root / "apm.yml"
+        apm_yml_path = project_manifest_path(project_root)
         if not apm_yml_path.exists() and root_package is None:
             # Create empty dependency graph for projects without apm.yml
             empty_package = APMPackage(name="unknown", version="0.0.0", package_path=project_root)

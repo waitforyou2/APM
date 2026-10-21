@@ -11,6 +11,8 @@ from pathlib import Path
 
 import click
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from ..constants import APM_MODULES_DIR, APM_YML_FILENAME, SKILL_MD_FILENAME
 from ..core.auth import AuthResolver
 from ..core.command_logger import CommandLogger
@@ -367,7 +369,7 @@ def _display_registry_versions(
     try:
         from ..models.apm_package import APMPackage
 
-        apm_yml = Path(".") / "apm.yml"
+        apm_yml = project_manifest_path()
         if apm_yml.is_file():
             pkg = APMPackage.from_apm_yml(apm_yml)
             project_registries = pkg.registries
@@ -507,7 +509,7 @@ def _effective_default_registry(project_root: Path) -> str | None:
     project_registries = None
     project_default = None
     try:
-        apm_yml = project_root / "apm.yml"
+        apm_yml = project_manifest_path(project_root)
         if apm_yml.is_file():
             from ..models.apm_package import APMPackage
 
@@ -578,7 +580,7 @@ def display_versions(
     # this prevents mis-routing when the user is outside an APM project or
     # running with --global (project_root=None).
     _pr = project_root if project_root is not None else Path(".")
-    if (_pr / "apm.yml").is_file():
+    if project_manifest_path(_pr).is_file():
         _, _, _locked_source = _lookup_lockfile_ref(package, _pr)
         if _locked_source == "registry":
             _display_registry_versions(package, dep_ref, logger)

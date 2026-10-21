@@ -549,6 +549,16 @@ class APMPackage:
                 raw_dev_deps, label="dev ", registries=provider_registries
             )
 
+        from .dependency.workspace_resource import validate_resource_ids
+
+        validate_resource_ids(
+            [
+                dep
+                for group in (dependencies, dev_dependencies)
+                for dep in (group or {}).get("apm", [])
+            ]
+        )
+
         # Merge user/policy registry URLs and config.json default routing.
         from ..deps.registry.config_loader import resolve_effective_registries
 

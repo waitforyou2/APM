@@ -10,9 +10,11 @@ import click
 
 from apm_cli.install.locking import serialized_lifecycle, serialized_lifecycle_unless
 
-# Import existing APM components
 from ...constants import APM_MODULES_DIR, APM_YML_FILENAME, SKILL_MD_FILENAME
 from ...core.command_logger import CommandLogger
+
+# Import existing APM components
+from ...core.project_manifest import project_manifest_path
 from ...core.project_name import DEFAULT_BOOTSTRAP_PROJECT_NAME
 from ...core.target_catalog import target_all_exclusion_help, target_help_fragment
 from ...core.target_detection import TargetParamType
@@ -233,7 +235,7 @@ def _resolve_scope_deps(apm_dir, logger, insecure_only=False):
     # Azure DevOps: org/project/repo or org/project/virtual-pkg-name (3 levels)
     declared_sources = {}  # dep_path -> 'github' | 'gitlab' | 'azure-devops' | 'local'
     try:
-        apm_yml_path = apm_dir / APM_YML_FILENAME
+        apm_yml_path = project_manifest_path(apm_dir)
         if apm_yml_path.exists():
             project_package = APMPackage.from_apm_yml(apm_yml_path)
             for dep in project_package.get_apm_dependencies():
@@ -698,7 +700,7 @@ def _build_dep_tree(apm_dir):
     # Load project info
     project_name = DEFAULT_BOOTSTRAP_PROJECT_NAME
     try:
-        apm_yml_path = apm_dir / APM_YML_FILENAME
+        apm_yml_path = project_manifest_path(apm_dir)
         if apm_yml_path.exists():
             root_package = APMPackage.from_apm_yml(apm_yml_path)
             project_name = root_package.name
@@ -1052,7 +1054,7 @@ def update(packages, verbose, force, target, parallel_downloads, global_, legacy
 
     scope = InstallScope.USER if global_ else InstallScope.PROJECT
     project_root = get_apm_dir(scope)
-    apm_yml_path = project_root / APM_YML_FILENAME
+    apm_yml_path = project_manifest_path(project_root)
 
     if not apm_yml_path.exists():
         scope_hint = "~/.apm/" if global_ else "current directory"

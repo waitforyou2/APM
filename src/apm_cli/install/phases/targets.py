@@ -14,6 +14,8 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 if TYPE_CHECKING:
     from apm_cli.install.context import InstallContext
     from apm_cli.integration.targets import TargetProfile
@@ -96,7 +98,7 @@ def _read_yaml_targets(ctx) -> list[str] | None:
     apm_yml_path = getattr(ctx.apm_package, "package_path", None)
     if apm_yml_path is None:
         return _as_yaml_targets(_package_target_value(ctx.apm_package))
-    manifest = apm_yml_path / "apm.yml"
+    manifest = project_manifest_path(apm_yml_path)
     if not manifest.exists():
         return _as_yaml_targets(_package_target_value(ctx.apm_package))
     try:

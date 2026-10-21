@@ -240,6 +240,7 @@ class LockedDependency:
     allow_insecure: bool = False  # True when the manifest explicitly allowed HTTP
     skill_subset: list[str] = field(default_factory=list)  # Sorted skill names for SKILL_BUNDLE
     target_subset: list[str] = field(default_factory=list)  # Audit-only consumer target subset
+    compact_resource: bool = False
     resource: ResourceSpec | None = None  # Explicit Git-directory deployment contract
 
     # Registry resolver fields (design §6.1).
@@ -288,6 +289,8 @@ class LockedDependency:
 
     def __post_init__(self) -> None:
         """Separate canonical lock identity from materialization spelling."""
+        if type(self.compact_resource) is not bool:
+            raise ValueError("compact_resource must be a boolean")
         if self.skill_link_url is not None:
             from .registry.skill_link_config import normalize_base_url, validate_version
 
@@ -426,6 +429,8 @@ class LockedDependency:
             result["skill_subset"] = sorted(self.skill_subset)
         if self.target_subset:
             result["target_subset"] = sorted(self.target_subset)
+        if self.compact_resource:
+            result["compact_resource"] = True
         if self.resource is not None:
             result["resource"] = self.resource.to_dict()
         if self.skill_link_url:
@@ -518,6 +523,7 @@ class LockedDependency:
             "skill_subset",
             "target_subset",
             "resource",
+            "compact_resource",
             "resolved_url",
             "resolved_hash",
             "skill_link_url",
@@ -568,6 +574,7 @@ class LockedDependency:
             allow_insecure=data.get("allow_insecure", False),
             skill_subset=list(data.get("skill_subset") or []),
             target_subset=list(data.get("target_subset") or []),
+            compact_resource=data.get("compact_resource", False),
             resource=(ResourceSpec.parse(data["resource"]) if "resource" in data else None),
             resolved_url=data.get("resolved_url"),
             resolved_hash=data.get("resolved_hash"),
@@ -715,6 +722,7 @@ class LockedDependency:
             target_subset=sorted(dep_ref.target_subset)
             if isinstance(getattr(dep_ref, "target_subset", None), list)
             else [],
+            compact_resource=getattr(dep_ref, "compact_resource", False) is True,
             resource=(
                 dep_ref.resource
                 if isinstance(getattr(dep_ref, "resource", None), ResourceSpec)
@@ -776,6 +784,7 @@ class LockedDependency:
             skill_subset=sorted(self.skill_subset) if self.skill_subset else None,
             target_subset=sorted(self.target_subset) if self.target_subset else None,
             resource=self.resource,
+            compact_resource=self.compact_resource,
         ).with_derived_provider_coordinates()
 
 

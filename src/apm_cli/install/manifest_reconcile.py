@@ -30,6 +30,8 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 if TYPE_CHECKING:
     from apm_cli.core.command_logger import InstallLogger
     from apm_cli.core.deployment_state import DeploymentLedger
@@ -440,7 +442,7 @@ def declared_target_profiles(
     from apm_cli.utils.yaml_io import load_yaml
 
     try:
-        data = load_yaml(project_root / "apm.yml")
+        data = load_yaml(project_manifest_path(project_root))
     except (AttributeError, KeyError, OSError, TypeError, ValueError):
         return None
     if not isinstance(data, dict):

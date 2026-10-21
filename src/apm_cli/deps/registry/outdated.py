@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from ...constants import APM_MODULES_DIR, APM_YML_FILENAME
 from ...deps.outdated_row import OutdatedRow
 from ...marketplace.semver import SemVer, parse_semver
@@ -103,7 +105,7 @@ def load_registry_outdated_context(
     """Build manifest index and merged registry map from *project_root*."""
     from ...models.apm_package import APMPackage, _route_unscoped_to_default_registry
 
-    apm_yml = project_root / "apm.yml"
+    apm_yml = project_manifest_path(project_root)
     manifest_index: dict[str, DependencyReference] = {}
     project_registries: dict[str, str] | None = None
     project_default: str | None = None

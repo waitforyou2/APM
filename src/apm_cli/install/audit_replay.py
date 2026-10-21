@@ -14,6 +14,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.deps.lockfile import LockFile, get_lockfile_path
 from apm_cli.install.drift import (
     CheckLogger,
@@ -76,7 +77,7 @@ def prepare_ci_audit_replay(
             f"lockfile not found at {lockfile_path}; run 'apm install' to generate it"
         )
 
-    manifest = APMPackage.from_apm_yml(project_root / "apm.yml")
+    manifest = APMPackage.from_apm_yml(project_manifest_path(project_root))
     lockfile = LockFile.read(lockfile_path)
     if lockfile is None:
         raise CiAuditReplayError(f"lockfile at {lockfile_path} is empty or unreadable")

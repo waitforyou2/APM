@@ -32,6 +32,11 @@ def parse_dependency_entry(dep_entry: object) -> DependencyReference:
     if isinstance(dep_entry, str):
         return DependencyReference.parse(dep_entry)
     if isinstance(dep_entry, dict):
+        from .selection_context import parse_selected_provider
+
+        provider_dep = parse_selected_provider(dep_entry)
+        if provider_dep is not None:
+            return provider_dep
         return DependencyReference.parse_from_dict(dep_entry)
     raise ValueError(f"Unsupported dependency entry type: {type(dep_entry).__name__}")
 
@@ -56,6 +61,8 @@ def select_manifest_dependency(
     parsed_entries: list[tuple[int, object, DependencyReference]] = []
     matched_entries: dict[int, object] = {}
     for index, entry in enumerate(manifest_dependencies):
+        if isinstance(entry, dict) and "kind" in entry and entry.get("id") == package:
+            matched_entries[index] = entry
         try:
             dependency = parse_dependency_entry(entry)
         except (ValueError, TypeError, AttributeError, KeyError):

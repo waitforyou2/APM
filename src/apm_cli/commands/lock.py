@@ -43,6 +43,7 @@ from pathlib import Path
 
 import click
 
+from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.install.locking import serialized_lifecycle
 
 from ..core.command_logger import InstallLogger
@@ -215,7 +216,7 @@ def _run_lock(
         os.chdir(project_root)
 
     try:
-        apm_package = APMPackage.from_apm_yml(Path("apm.yml"))
+        apm_package = APMPackage.from_apm_yml(project_manifest_path())
     except (FileNotFoundError, ValueError) as e:
         _rich_error(f"Failed to parse apm.yml: {e}")
         sys.exit(1)

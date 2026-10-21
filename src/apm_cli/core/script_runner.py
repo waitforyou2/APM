@@ -7,6 +7,8 @@ import sys
 import time
 from pathlib import Path
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from ..output.script_formatters import ScriptExecutionFormatter
 from ..runtime.registry import (
     get_runtime_descriptor,
@@ -219,7 +221,7 @@ class ScriptRunner:
 
     def _load_config(self) -> dict | None:
         """Load apm.yml from current directory."""
-        config_path = Path("apm.yml")
+        config_path = project_manifest_path()
         if not config_path.exists():
             return None
 
@@ -858,7 +860,7 @@ class ScriptRunner:
         Args:
             package_ref: Virtual package reference to add
         """
-        config_path = Path("apm.yml")
+        config_path = project_manifest_path()
 
         # Skip if apm.yml doesn't exist (e.g., in test environments)
         if not config_path.exists():

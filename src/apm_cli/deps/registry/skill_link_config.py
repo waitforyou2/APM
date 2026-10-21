@@ -63,13 +63,24 @@ def parse_skill_link_entry(entry: dict, registry_name: str, base_url: str):
     from ...models.dependency.reference import DependencyReference
     from ...models.dependency.registry_entry import parse_registry_object_entry
     from ...models.dependency.resource import ResourceSpec
+    from ...models.dependency.workspace_resource import compact_resource
 
-    if set(entry) - {"id", "version", "registry", "alias", "targets"}:
-        raise ValueError("skill-link-v1 accepts only id, version, registry, alias, targets")
-    dep = parse_registry_object_entry(DependencyReference, entry, allow_single_id=True)
+    if set(entry) - {"id", "kind", "version", "registry", "alias", "targets"}:
+        raise ValueError("skill-link-v1 accepts only id, kind, version, registry, alias, targets")
+    resource = compact_resource(entry) if "kind" in entry else None
+    if resource is not None and resource.kind not in {"skills", "knowledge"}:
+        raise ValueError("skill-link-v1 supports only skills and knowledge resources")
+    dep = parse_registry_object_entry(
+        DependencyReference,
+        {key: value for key, value in entry.items() if key != "kind"},
+        allow_single_id=True,
+    )
     # Keep IDs portable to Windows and case-sensitive service identities unambiguous.
     ResourceSpec.parse({"kind": "skills", "name": dep.repo_url})
-    dep.resource = ResourceSpec.parse({"kind": "skills", "name": dep.alias or dep.repo_url})
+    dep.resource = resource or ResourceSpec.parse(
+        {"kind": "skills", "name": dep.alias or dep.repo_url}
+    )
+    dep.compact_resource = resource is not None
     validate_version(dep.reference)
     dep.alias = dep.alias or dep.repo_url
     dep.registry_name = registry_name
@@ -95,6 +106,7 @@ def builtin_registry_block(data: dict) -> dict | None:
         if any(
             isinstance(entry, dict)
             and "id" in entry
+            and "git" not in entry
             and entry.get("registry", BUILTIN_REGISTRY) == BUILTIN_REGISTRY
             for entry in entries
         ):
@@ -115,7 +127,7 @@ def parse_provider_entry(entry: dict, registries: dict | None):
 
     User config only binds credentials; it cannot silently change the protocol.
     """
-    if not registries or not ({"id", "registry"} & entry.keys()):
+    if "git" in entry or not registries or not ({"id", "registry"} & entry.keys()):
         return None
     name = entry.get("registry", registries.get("default"))
     body = registries.get(name) if isinstance(name, str) else None

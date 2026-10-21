@@ -162,6 +162,7 @@ def locked_dependency_kwargs(draw: st.DrawFn) -> dict[str, Any]:
     kwargs["target_subset"] = draw(
         st.one_of(st.just([]), st.permutations(["copilot", "claude"]).map(sorted))
     )
+    kwargs["compact_resource"] = draw(st.booleans())
     kwargs["resource"] = maybe(None, st.just(ResourceSpec("knowledge", "sample")))
     kwargs["resolved_url"] = maybe(None, st.just("https://registry.example.invalid/pkg.tgz"))
     kwargs["resolved_hash"] = maybe(None, _SHA.map(lambda s: f"sha256:{s}"))

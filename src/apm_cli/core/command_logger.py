@@ -321,6 +321,7 @@ class InstallLogger(CommandLogger):
         to_install_count: int,
         lockfile_count: int,
         update_count: int = 0,
+        manifest_name: str = "apm.yml",
     ):
         """Log start of dependency resolution."""
         if self.partial:
@@ -342,7 +343,7 @@ class InstallLogger(CommandLogger):
                     color="dim",
                 )
         else:
-            _rich_info("Installing dependencies from apm.yml...", symbol="running")
+            _rich_info(f"Installing dependencies from {manifest_name}...", symbol="running")
             if lockfile_count > 0:
                 _rich_info(f"Using apm.lock.yaml ({lockfile_count} locked dependencies)")
 

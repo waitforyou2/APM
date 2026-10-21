@@ -58,6 +58,7 @@ from apm_cli.core.deployment_state import (
     MaterializationStatus,
     NativePayloadValidation,
 )
+from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.core.scope import InstallScope
 from apm_cli.hook_contract import HOOK_COMMAND_KEYS as _HOOK_COMMAND_KEYS
 from apm_cli.hook_contract import walk_hook_commands
@@ -872,7 +873,7 @@ class HookIntegrator(BaseIntegrator):
     @staticmethod
     def _get_root_local_package_name(package_info, project_root: Path) -> str:
         """Get the stable source marker for root .apm content."""
-        apm_yml = Path(project_root) / "apm.yml"
+        apm_yml = project_manifest_path(project_root)
         if apm_yml.exists():
             try:
                 from apm_cli.utils.yaml_io import load_yaml

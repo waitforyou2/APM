@@ -17,6 +17,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Sequence, cast  # noqa: UP035
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from ..core.deployment_ledger import DEPLOYMENT_OWNER_REMEDIATION
 from ..deps.lockfile import _SELF_KEY, LEGACY_LOCKFILE_NAME, LOCKFILE_NAME
 from .models import CheckResult, CIAuditResult
@@ -895,7 +897,7 @@ def run_baseline_checks(
         user_scope=user_scope,
         explicit_target=_read_apm_yml_target(project_root),
     )
-    apm_yml_path = project_root / "apm.yml"
+    apm_yml_path = project_manifest_path(project_root)
 
     # Parse manifest ONCE -- this function owns parse-error handling.
     manifest: APMPackage | None = None

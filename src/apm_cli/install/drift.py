@@ -39,6 +39,7 @@ from typing import TYPE_CHECKING, Any
 import click
 
 from apm_cli.core.command_logger import CommandLogger
+from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.deps.path_anchoring import build_local_parent_index, resolve_local_dep_dir
 from apm_cli.install.drift_render import (
     _INLINE_DIFF_BYTE_CAP as _INLINE_DIFF_BYTE_CAP,
@@ -511,7 +512,7 @@ def _read_apm_yml_target(project_root: Path):
     have copilot auto-detected during replay, producing false
     ``unintegrated`` findings for ``.github/instructions/`` (#1924).
     """
-    apm_yml = project_root / "apm.yml"
+    apm_yml = project_manifest_path(project_root)
     if not apm_yml.exists():
         return None
     try:
@@ -600,7 +601,7 @@ def run_replay(config: ReplayConfig, logger: CheckLogger) -> Path:
         from apm_cli.models.apm_package import APMPackage
 
         downloader = GitHubPackageDownloader(auth_resolver=AuthResolver())
-        apm_yml = project_root / "apm.yml"
+        apm_yml = project_manifest_path(project_root)
         if apm_yml.exists():
             manifest = APMPackage.from_apm_yml(apm_yml)
             registries = getattr(manifest, "registries", None) or {}

@@ -32,6 +32,8 @@ import contextvars
 from enum import Enum
 from pathlib import Path
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -176,7 +178,7 @@ def get_manifest_path(scope: InstallScope) -> Path:
 
     if scope is InstallScope.USER:
         return get_apm_dir(scope) / APM_YML_FILENAME
-    return get_source_root(scope) / APM_YML_FILENAME
+    return project_manifest_path(get_source_root(scope))
 
 
 def get_lockfile_dir(scope: InstallScope) -> Path:

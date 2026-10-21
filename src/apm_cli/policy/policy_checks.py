@@ -11,6 +11,8 @@ import logging
 import os
 from pathlib import Path
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from .models import CheckResult, CIAuditResult
 
 _logger = logging.getLogger(__name__)
@@ -40,7 +42,7 @@ def _load_raw_apm_yml(project_root: Path) -> dict | None:
     """
     import yaml
 
-    apm_yml_path = project_root / "apm.yml"
+    apm_yml_path = project_manifest_path(project_root)
     if not apm_yml_path.exists():
         return None
     try:
@@ -1365,7 +1367,7 @@ def run_policy_checks(
     result = CIAuditResult()
 
     # Load manifest
-    apm_yml_path = project_root / "apm.yml"
+    apm_yml_path = project_manifest_path(project_root)
     if not apm_yml_path.exists():
         return result
 

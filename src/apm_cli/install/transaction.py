@@ -10,6 +10,7 @@ import weakref
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, cast
 
+from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.install.locking import acquire_lifecycle_lock
 from apm_cli.install.resolution_staging import ResolutionStagingSession
 from apm_cli.models.results import InstallDisposition, InstallResult
@@ -253,7 +254,7 @@ def resolution_for_context(ctx: Any) -> ResolutionStagingSession:
     """Return the context transaction's journal, creating a legacy adapter."""
     if ctx.transaction is None:
         ctx.transaction = InstallTransaction(
-            manifest_path=ctx.source_root / "apm.yml",
+            manifest_path=project_manifest_path(ctx.source_root),
             apm_modules_dir=ctx.apm_modules_dir,
             validation=None,
             logger=ctx.logger,

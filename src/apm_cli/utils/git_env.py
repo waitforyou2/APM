@@ -226,7 +226,7 @@ def _executable_exclusion_root() -> Path:
         if (directory / ".git").exists():
             return directory
     for directory in ancestors:
-        if (directory / "apm.yml").is_file():
+        if (directory / "apm.yml").is_file() or (directory / "workspace.yml").is_file():
             return directory
     return cwd
 

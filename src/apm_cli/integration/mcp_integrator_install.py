@@ -20,6 +20,7 @@ from apm_cli.core.apm_yml import (
     parse_targets_field,
 )
 from apm_cli.core.null_logger import NullCommandLogger
+from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.core.target_catalog import accepted_target_values
 from apm_cli.install.errors import InstallFailureAlreadyRendered, RequiredIntegrationError
 from apm_cli.runtime.utils import find_runtime_binary
@@ -681,7 +682,7 @@ def _resolve_target_runtimes(
         project_root_path = Path(project_root) if project_root is not None else Path.cwd()
 
         if apm_config is None:
-            apm_yml = project_root_path / "apm.yml"
+            apm_yml = project_manifest_path(project_root_path)
             try:
                 if apm_yml.exists():
                     apm_config = load_yaml(apm_yml)

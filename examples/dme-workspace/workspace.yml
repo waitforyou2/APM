@@ -1,0 +1,110 @@
+# 完整 DME 示例。接口 ID/0.0.1 为示例，需核对平台实际发布值。
+# Agent/Workflow 的 Git 路径按已有目录推导，使用前核对。
+name: requirement-analysis
+version: "0.1.0"
+description: DME需求分析统一作业空间
+product:
+  name: DME
+  version: "DME V100R026C10"
+stage: design
+targets: [cac]
+workflowSequence:
+  - requirement-analysis-workflow
+
+dependencies:
+  apm:
+    # 接口来源的 Skill
+    - id: bmad-create-prd
+      kind: skills
+      version: "0.0.1"
+
+    - id: bmad-edit-prd
+      kind: skills
+      version: "0.0.1"
+
+    - id: bmad-create-epics-and-stories
+      kind: skills
+      version: "0.0.1"
+
+    - id: bmad-correct-course
+      kind: skills
+      version: "0.0.1"
+
+    - id: bmad-validate-prd
+      kind: skills
+      version: "0.0.1"
+
+    - id: bmad-check-implementation-readiness
+      kind: skills
+      version: "0.0.1"
+
+    - id: bmad-prd
+      kind: skills
+      version: "0.0.1"
+
+    # 接口来源的 Knowledge：请求 Skill 接口，部署到 .cac/knowledge/<id>/。
+    - id: reliability-requirement-knowledge
+      kind: knowledge
+      version: "0.0.1"
+
+    - id: serviceability-requirement-knowledge
+      kind: knowledge
+      version: "0.0.1"
+
+    - id: geek-security-by-scene-kb
+      kind: knowledge
+      version: "0.0.1"
+
+    # Git 来源的 Knowledge：原目录含 SKILL.md，也可作为知识原样分发。
+    - id: nine-dme-metadata-skill
+      kind: knowledge
+      git: https://szv-open.codehub.huawei.com/OpenBaize/GDD-AI-Dev-Skills/DME.git
+      ref: master
+      path: components/system-design/requirement-analysis/skills/nine-dme-metadata-skill
+
+    - id: requirement-analyzer
+      kind: agents
+      git: https://szv-open.codehub.huawei.com/OpenBaize/GDD-AI-Dev-Skills/DME.git
+      ref: master
+      path: components/system-design/requirement-analysis/agents/requirement-analyzer
+
+    - id: requirement-reviewer
+      kind: agents
+      git: https://szv-open.codehub.huawei.com/OpenBaize/GDD-AI-Dev-Skills/DME.git
+      ref: master
+      path: components/system-design/requirement-analysis/agents/requirement-reviewer
+
+    - id: requirement-analysis-workflow
+      kind: workflows
+      git: https://szv-open.codehub.huawei.com/OpenBaize/GDD-AI-Dev-Skills/DME.git
+      ref: master
+      path: components/system-design/requirement-analysis/workflows/requirement-analysis-workflow
+
+# 关系为 Workspace 使用系统的元数据，APM 不执行或强制限制关系层级。
+# 本例通过两个 Agent 共用的 bmad-prd 引用四项知识，可按实际需要调整。
+relations:
+  skills:
+    bmad-prd:
+      usesKnowledge:
+        - reliability-requirement-knowledge
+        - serviceability-requirement-knowledge
+        - geek-security-by-scene-kb
+        - nine-dme-metadata-skill
+  agents:
+    requirement-analyzer:
+      usesSkills:
+        - bmad-create-prd
+        - bmad-edit-prd
+        - bmad-create-epics-and-stories
+        - bmad-correct-course
+        - bmad-prd
+    requirement-reviewer:
+      usesSkills:
+        - bmad-validate-prd
+        - bmad-check-implementation-readiness
+        - bmad-prd
+  workflows:
+    requirement-analysis-workflow:
+      usesAgents:
+        - requirement-analyzer
+        - requirement-reviewer

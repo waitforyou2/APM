@@ -84,7 +84,11 @@ def download_skill_link(
         raise SkillLinkError(
             "Skill Link locked version does not match the manifest's exact version"
         )
-    resource = ResourceSpec.parse({"kind": "skills", "name": dep.alias or dep.repo_url})
+    resource = dep.resource or ResourceSpec.parse(
+        {"kind": "skills", "name": dep.alias or dep.repo_url}
+    )
+    if resource.kind not in {"skills", "knowledge"}:
+        raise SkillLinkError("Skill Link can deploy only skills or knowledge")
     ResourceSpec.parse({"kind": "skills", "name": dep.repo_url})
     if dep.virtual_path or dep.skill_subset:
         raise SkillLinkError("Skill Link packages do not support path or skills subsets")

@@ -16,6 +16,8 @@ from pathlib import Path
 
 import click
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from ..core.command_logger import CommandLogger
 from ..core.deployment_ledger import (
     DEPLOYMENT_OWNER_REMEDIATION,
@@ -556,7 +558,9 @@ def _audit_ci_gate(
 
     prepared_replay = None
     prepared_replay_error = None
-    if (cfg.project_root / "apm.yml").exists() and not (cfg.project_root / "apm_modules").exists():
+    if (project_manifest_path(cfg.project_root)).exists() and not (
+        cfg.project_root / "apm_modules"
+    ).exists():
         from ..core.scope import get_workspace_deploy_root
         from ..deps.lockfile import get_lockfile_path
         from ..install.audit_replay import CiAuditReplayError, prepare_ci_audit_replay
@@ -695,7 +699,7 @@ def _audit_ci_gate(
 
     # -- Drift detection (default-on per ADR-02) --------------------
     drift_findings: list = []
-    if not no_drift and (cfg.project_root / "apm.yml").exists():
+    if not no_drift and (project_manifest_path(cfg.project_root)).exists():
         from ..deps.lockfile import LockFile, get_lockfile_path
 
         lockfile_path = get_lockfile_path(cfg.project_root)
@@ -1005,7 +1009,7 @@ def _audit_content_scan(
         and not strip
         and not file_path
         and not package
-        and (project_root / "apm.yml").exists()
+        and (project_manifest_path(project_root)).exists()
     ):
         from ..policy.ci_checks import DRIFT_SKIP_PREFIX, _check_drift
 

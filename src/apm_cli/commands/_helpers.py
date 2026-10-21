@@ -13,6 +13,8 @@ import click
 from colorama import Fore, Style
 from colorama import init as colorama_init
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from ..agent_plugins.validation import is_valid_plugin_name as _is_valid_agent_plugin_name
 from ..constants import (
     APM_MODULES_DIR,
@@ -304,7 +306,7 @@ def _check_orphaned_packages():
         List[str]: List of orphaned package names in org/repo or org/project/repo format
     """
     try:
-        if not Path(APM_YML_FILENAME).exists():
+        if not project_manifest_path().exists():
             return []
 
         apm_modules_dir = Path(APM_MODULES_DIR)
@@ -315,7 +317,7 @@ def _check_orphaned_packages():
             from ..deps.lockfile import LockFile, get_lockfile_path
             from ..models.apm_package import APMPackage
 
-            apm_package = APMPackage.from_apm_yml(Path(APM_YML_FILENAME))
+            apm_package = APMPackage.from_apm_yml(project_manifest_path())
             declared_deps = apm_package.get_all_apm_dependencies()
             lockfile = LockFile.read(get_lockfile_path(Path.cwd()))
             expected = _build_expected_install_paths(declared_deps, lockfile, apm_modules_dir)
@@ -557,10 +559,10 @@ def _update_gitignore_for_apm_modules(logger=None):
 
 def _load_apm_config():
     """Load configuration from apm.yml."""
-    if Path(APM_YML_FILENAME).exists():
+    if project_manifest_path().exists():
         from ..utils.yaml_io import load_yaml
 
-        return load_yaml(APM_YML_FILENAME)
+        return load_yaml(project_manifest_path())
     return None
 
 
@@ -775,7 +777,7 @@ def _find_apm_yml(start: Path | None = None) -> Path | None:
     """
     cwd = (start or Path.cwd()).resolve()
     for candidate in (cwd, *cwd.parents):
-        manifest = candidate / "apm.yml"
-        if manifest.is_file():
+        manifest = project_manifest_path(candidate)
+        if manifest.exists() or manifest.is_symlink():
             return manifest
     return None

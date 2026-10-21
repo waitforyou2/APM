@@ -61,6 +61,8 @@ from typing import TYPE_CHECKING, Any
 import click
 from git.exc import GitCommandError
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from ..core.auth import AuthResolver
 from ..core.command_logger import InstallLogger
 from ..core.target_catalog import target_help_fragment
@@ -251,7 +253,7 @@ def _run_mcp_lsp_integration(
     from apm_cli.policy.install_preflight import PolicyBlockError
 
     clear_apm_yml_cache()
-    apm_package = APMPackage.from_apm_yml(Path("apm.yml"))
+    apm_package = APMPackage.from_apm_yml(project_manifest_path())
     effective_target = target_decision.value if target_decision is not None else None
 
     old_mcp_servers: set = set()
@@ -635,7 +637,7 @@ def _run_dep_update_locked(
         scope = InstallScope.PROJECT
 
     try:
-        apm_package = APMPackage.from_apm_yml(Path("apm.yml"))
+        apm_package = APMPackage.from_apm_yml(project_manifest_path())
     except (FileNotFoundError, ValueError) as e:
         _rich_error(f"Failed to parse apm.yml: {e}")
         sys.exit(1)
@@ -687,7 +689,7 @@ def _run_dep_update_locked(
         if not revision_pin_updates or plan_state.revision_pins_applied:
             return
         try:
-            apply_revision_pin_updates(Path("apm.yml"), revision_pin_updates)
+            apply_revision_pin_updates(project_manifest_path(), revision_pin_updates)
         except Exception as e:
             _rich_error(f"Failed to update apm.yml revision pins: {e}")
             sys.exit(1)

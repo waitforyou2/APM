@@ -41,6 +41,8 @@ from datetime import datetime, timezone
 from pathlib import Path, PureWindowsPath
 from typing import TYPE_CHECKING
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 if TYPE_CHECKING:
     from apm_cli.core.command_logger import CommandLogger
 
@@ -369,7 +371,7 @@ def _get_user_apm_yml() -> Path:
 def _get_project_apm_yml(project_root: str | None = None) -> Path:
     """Return the project-level apm.yml path at the repo root."""
     root = Path(project_root) if project_root else Path.cwd()
-    return root / "apm.yml"
+    return project_manifest_path(root)
 
 
 def _load_scripts_from_dir(

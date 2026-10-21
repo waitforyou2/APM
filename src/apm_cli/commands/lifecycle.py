@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 
 import click
 
+from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.install.locking import serialized_lifecycle
 from apm_cli.utils.console import (
     STATUS_SYMBOLS,
@@ -199,7 +200,7 @@ def lifecycle_init(force: bool) -> None:
 
     from apm_cli.utils.yaml_io import dump_yaml, load_yaml
 
-    target_file = Path.cwd() / "apm.yml"
+    target_file = project_manifest_path()
 
     if not target_file.is_file():
         _rich_error(

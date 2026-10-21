@@ -22,6 +22,7 @@ from apm_cli.core.errors import (
     render_conflicting_schema_error,
     render_unknown_target_error,
 )
+from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.core.target_catalog import get_target_capability, manifest_target_names
 
 if TYPE_CHECKING:
@@ -212,7 +213,7 @@ def read_declared_target_names(root: Path) -> list[str] | None:
 
     from apm_cli.utils.yaml_io import load_yaml
 
-    manifest_path = root / "apm.yml"
+    manifest_path = project_manifest_path(root)
     if manifest_path.is_symlink():
         raise OSError("apm.yml must be a regular, non-symlink file")
     if not manifest_path.exists():

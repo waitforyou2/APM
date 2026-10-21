@@ -159,7 +159,7 @@ class APMFileHandler:
         # and would otherwise trigger a full discovery walk on every
         # save. See #1533 follow-up.
         basename = os.path.basename(src_path)
-        is_manifest = basename == APM_YML_FILENAME
+        is_manifest = basename in {APM_YML_FILENAME, "workspace.yml"}
         is_skill = basename == _SKILL_FILENAME
         is_primitive = any(src_path.endswith(suffix) for suffix in PRIMITIVE_SUFFIXES)
         if not is_manifest and not is_primitive and not is_skill:
@@ -191,7 +191,7 @@ class APMFileHandler:
         clear_discovery_cache()
 
         effective_target = self.effective_target
-        if os.path.basename(changed_file) == APM_YML_FILENAME:
+        if os.path.basename(changed_file) in {APM_YML_FILENAME, "workspace.yml"}:
             from .cli import _resolve_effective_target
 
             effective_target, _reason, _config_target = _resolve_effective_target(self.cli_target)
@@ -286,9 +286,9 @@ def _watch_mode(
             observer.schedule(event_handler, ".github/agents", recursive=True)
             watch_paths.append(".github/agents/")
 
-        if Path(APM_YML_FILENAME).exists():
+        if Path(APM_YML_FILENAME).exists() or Path("workspace.yml").exists():
             observer.schedule(event_handler, ".", recursive=False)
-            watch_paths.append(APM_YML_FILENAME)
+            watch_paths.append("workspace.yml / apm.yml")
 
         if not watch_paths:
             logger.warning("No APM directories found to watch")

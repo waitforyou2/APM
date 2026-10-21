@@ -11,6 +11,8 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, NamedTuple  # noqa: UP035
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from ..core.target_catalog import accepted_target_values, get_target_capability
 from ..core.target_detection import (
     CompileTargetType,
@@ -212,12 +214,10 @@ class CompilationConfig:
 
         # Try to load from apm.yml
         try:
-            from pathlib import Path
-
-            if Path("apm.yml").exists():
+            if project_manifest_path().exists():
                 from ..utils.yaml_io import load_yaml
 
-                apm_config = load_yaml("apm.yml") or {}
+                apm_config = load_yaml(project_manifest_path()) or {}
 
                 # Look for compilation section
                 compilation_config = apm_config.get("compilation", {})

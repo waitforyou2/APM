@@ -46,6 +46,8 @@ import time
 from functools import wraps
 from typing import TYPE_CHECKING
 
+from apm_cli.core.project_manifest import project_manifest_path
+
 from ..agent_plugins.errors import AgentPluginError
 from ..copilot_plugins.settings import CopilotSettingsCollisionError
 from ..models.dependency.materialization import MaterializationPathCollisionError
@@ -331,7 +333,7 @@ def _transactional_pipeline(run):
             except (AttributeError, TypeError):
                 from pathlib import Path
 
-                manifest_path = Path.cwd() / "apm.yml"
+                manifest_path = project_manifest_path(Path.cwd())
                 modules_dir = Path.cwd() / "apm_modules"
             transaction = InstallTransaction(
                 manifest_path=manifest_path,

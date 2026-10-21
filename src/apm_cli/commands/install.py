@@ -17,6 +17,7 @@ from apm_cli.agent_plugins.errors import (
     enforce_agent_plugin_deployment_boundary,
 )
 from apm_cli.copilot_plugins.settings import CopilotSettingsCollisionError
+from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.install.argv import (
     _get_invocation_argv,
     _split_argv_at_double_dash,
@@ -579,9 +580,8 @@ def _validate_and_add_packages_to_apm_yml(
     Returns:
         Tuple of (validated_packages list, _ValidationOutcome).
     """
-    from pathlib import Path
 
-    apm_yml_path = manifest_path or Path(APM_YML_FILENAME)
+    apm_yml_path = manifest_path or project_manifest_path()
 
     # Read current apm.yml
     try:
@@ -1444,7 +1444,7 @@ def install(  # noqa: PLR0913
         manifest_path = get_manifest_path(scope)
         apm_dir = get_apm_dir(scope)
         # Display name for messages (short for project scope, full for user scope)
-        manifest_display = str(manifest_path) if scope is InstallScope.USER else APM_YML_FILENAME
+        manifest_display = str(manifest_path) if scope is InstallScope.USER else manifest_path.name
         manifest_path, dry_run_manifest_tmp = _prepare_dry_run_manifest_path(
             manifest_path,
             dry_run=dry_run,
@@ -1716,6 +1716,7 @@ def _install_apm_packages(ctx, outcome):
     logger = ctx.logger
 
     logger.resolution_start(
+        manifest_name=ctx.manifest_path.name,
         to_install_count=len(ctx.only_packages or []) if ctx.packages else 0,
         lockfile_count=0,  # Refined later inside _install_apm_dependencies
         update_count=len(outcome.updated_packages) if outcome is not None else 0,
@@ -1744,7 +1745,7 @@ def _install_apm_packages(ctx, outcome):
         mcp_deps = []
 
     logger.verbose_detail(
-        f"Parsed {APM_YML_FILENAME}: {len(apm_deps)} APM deps, "
+        f"Parsed {ctx.manifest_display}: {len(apm_deps)} APM deps, "
         f"{len(prod_mcp_deps)} MCP deps"
         + (f", {len(dev_apm_deps)} dev APM deps" if dev_apm_deps else "")
         + (f", {len(dev_mcp_deps)} dev MCP deps" if dev_mcp_deps else "")

@@ -8,7 +8,6 @@ from typing import Any
 
 import click
 
-from ...constants import APM_YML_FILENAME
 from ...core.command_logger import CommandLogger
 from ...install.locking import serialized_lifecycle
 from ...models.apm_package import APMPackage
@@ -30,6 +29,7 @@ from .engine import (
     _sync_integrations_after_uninstall,
     _validate_uninstall_packages,
 )
+from .manifest_context import with_manifest_selection
 
 
 def _report_uninstall_outcome(
@@ -233,6 +233,7 @@ def _report_package_removal_failure(
 )
 @click.pass_context
 @serialized_lifecycle
+@with_manifest_selection
 def uninstall(ctx, packages, dry_run, verbose, global_):
     """Remove APM packages from apm.yml and apm_modules (like npm uninstall).
 
@@ -260,7 +261,7 @@ def uninstall(ctx, packages, dry_run, verbose, global_):
     apm_dir = get_apm_dir(scope)
     deploy_root = get_deploy_root(scope)
     modules_dir = get_modules_dir(scope)
-    manifest_display = str(manifest_path) if scope is InstallScope.USER else APM_YML_FILENAME
+    manifest_display = str(manifest_path) if scope is InstallScope.USER else manifest_path.name
 
     logger = CommandLogger("uninstall", verbose=verbose, dry_run=dry_run)
     staged_local_refreshes = {}
