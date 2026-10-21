@@ -29,8 +29,10 @@ from apm_cli.install.helpers.ref_reuse import (
     requires_remote_ref_resolution as _requires_remote_ref_resolution,
 )
 from apm_cli.install.helpers.ref_seed import seed_ref_resolver_from_lockfile
+from apm_cli.install.registry_wiring import (
+    annotate_registry_dep_ref as _annotate_registry_dep_ref,
+)
 from apm_cli.install.transaction import resolution_for_context
-from apm_cli.models.apm_package import GitReferenceType, ResolvedReference
 from apm_cli.models.dependency import materialization as _materialization
 from apm_cli.utils.short_sha import format_short_sha
 
@@ -302,17 +304,6 @@ def _setup_downloader(ctx: InstallContext) -> None:
             type(exc).__name__,
             exc,
         )
-
-
-def _annotate_registry_dep_ref(dep_ref, registry_resolver) -> None:
-    reg_res = registry_resolver.last_resolutions.get(dep_ref.get_unique_key())
-    if not reg_res or not reg_res.version:
-        return
-    dep_ref.resolved_reference = ResolvedReference(
-        original_ref=dep_ref.reference or reg_res.version,
-        ref_type=GitReferenceType.TAG,
-        ref_name=reg_res.version,
-    )
 
 
 def _fail_on_resolution_errors(ctx: InstallContext, dependency_graph) -> None:

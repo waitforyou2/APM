@@ -11,7 +11,30 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from apm_cli.deps.registry.resolver import RegistryPackageResolver
     from apm_cli.install.context import InstallContext
+    from apm_cli.models.dependency.reference import DependencyReference
+
+
+def annotate_registry_dep_ref(
+    dep_ref: DependencyReference, registry_resolver: RegistryPackageResolver
+) -> None:
+    """Carry a freshly resolved registry version into update-plan metadata.
+
+    Resolution owns the concrete version; this adapter only projects it onto
+    the dependency. Missing resolution data must leave an existing annotation
+    untouched, as on the cached/lockfile replay path.
+    """
+    from apm_cli.models.dependency.types import GitReferenceType, ResolvedReference
+
+    reg_res = registry_resolver.last_resolutions.get(dep_ref.get_unique_key())
+    if not reg_res or not reg_res.version:
+        return
+    dep_ref.resolved_reference = ResolvedReference(
+        original_ref=dep_ref.reference or reg_res.version,
+        ref_type=GitReferenceType.TAG,
+        ref_name=reg_res.version,
+    )
 
 
 def get_effective_default_registry(data: dict, *, create_config: bool = True) -> str | None:

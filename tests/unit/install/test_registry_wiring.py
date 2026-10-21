@@ -2,13 +2,64 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import pytest
+
+from apm_cli.deps.registry.resolver import RegistryResolution
 from apm_cli.install.registry_wiring import (
+    annotate_registry_dep_ref,
     get_effective_default_registry,
     should_skip_github_probe_for_dep,
     validate_registry_ref,
 )
+from apm_cli.models.dependency.reference import DependencyReference
+from apm_cli.models.dependency.types import GitReferenceType, ResolvedReference
+
+
+@pytest.mark.parametrize("reference", ["^1.0.0", "1.2.3", None])
+def test_registry_annotation_preserves_selector_and_concrete_version(reference):
+    dep = DependencyReference(repo_url="acme/tool", source="registry", reference=reference)
+    resolver = SimpleNamespace(
+        last_resolutions={
+            dep.get_unique_key(): RegistryResolution(
+                "https://registry.example.test/tool.zip", "sha256:test", "1.2.3"
+            )
+        }
+    )
+
+    annotate_registry_dep_ref(dep, resolver)
+
+    assert dep.resolved_reference == ResolvedReference(
+        original_ref=reference or "1.2.3",
+        ref_type=GitReferenceType.TAG,
+        ref_name="1.2.3",
+    )
+    assert dep.reference == reference
+
+
+@pytest.mark.parametrize("version", [None, ""])
+def test_missing_registry_resolution_preserves_existing_annotation(version):
+    dep = DependencyReference(repo_url="acme/tool", source="registry", reference="^1.0.0")
+    existing = ResolvedReference(
+        original_ref="^1.0.0", ref_type=GitReferenceType.TAG, ref_name="1.0.1"
+    )
+    dep.resolved_reference = existing
+    resolutions = (
+        {} if version is None else {dep.get_unique_key(): RegistryResolution("", "", version)}
+    )
+
+    annotate_registry_dep_ref(dep, SimpleNamespace(last_resolutions=resolutions))
+
+    assert dep.resolved_reference is existing
+
+
+def test_resolve_phase_delegates_registry_annotation_to_wiring():
+    from apm_cli.install.phases import resolve
+
+    assert resolve._annotate_registry_dep_ref is annotate_registry_dep_ref
+
 
 # ---------------------------------------------------------------------------
 # should_skip_github_probe_for_dep
