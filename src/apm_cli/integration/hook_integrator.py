@@ -1,5 +1,4 @@
-"""Hook integration functionality for APM packages.
-Integrates hook JSON files and referenced scripts during package installation.
+"""Integrate hook JSON files and their scripts during APM package installation.
 Supports VSCode Copilot (.github/hooks/), Claude Code
 (.claude/settings.json), and Cursor (.cursor/hooks.json) targets.
 

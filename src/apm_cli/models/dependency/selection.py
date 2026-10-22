@@ -41,6 +41,20 @@ def parse_dependency_entry(dep_entry: object) -> DependencyReference:
     raise ValueError(f"Unsupported dependency entry type: {type(dep_entry).__name__}")
 
 
+def _matches_workspace_resource_id(package: str, entry: object) -> bool:
+    """Match an explicit compact resource ID without inferring it from aliases."""
+    return isinstance(entry, dict) and "kind" in entry and entry.get("id") == package
+
+
+def has_workspace_resource_id(package: str, manifest_dependencies: list[object]) -> bool:
+    """Decide whether a bare CLI identifier is declared by a Workspace resource.
+
+    This format check does not resolve ambiguity or select an entry; callers
+    must still use select_manifest_dependency before removing anything.
+    """
+    return any(_matches_workspace_resource_id(package, entry) for entry in manifest_dependencies)
+
+
 def select_manifest_dependency(
     package: str,
     manifest_dependencies: list[object],
@@ -61,7 +75,7 @@ def select_manifest_dependency(
     parsed_entries: list[tuple[int, object, DependencyReference]] = []
     matched_entries: dict[int, object] = {}
     for index, entry in enumerate(manifest_dependencies):
-        if isinstance(entry, dict) and "kind" in entry and entry.get("id") == package:
+        if _matches_workspace_resource_id(package, entry):
             matched_entries[index] = entry
         try:
             dependency = parse_dependency_entry(entry)

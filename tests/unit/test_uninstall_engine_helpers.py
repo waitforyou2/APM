@@ -90,6 +90,49 @@ class TestParseDependencyEntry:
 class TestValidateUninstallPackages:
     """Tests for _validate_uninstall_packages."""
 
+    @pytest.mark.parametrize("kind", ["skills", "agents", "knowledge", "workflows"])
+    def test_workspace_resource_id_routes_through_selection_owner(self, kind: str) -> None:
+        """Uninstall delegates compact ID recognition to the canonical selection module."""
+        from apm_cli.models.dependency.selection import has_workspace_resource_id
+
+        logger = _make_logger()
+        entry = {
+            "id": "sdk",
+            "kind": kind,
+            "git": "https://github.com/acme/resources",
+            "path": "resources/sdk",
+        }
+        with patch(
+            "apm_cli.commands.uninstall.engine.has_workspace_resource_id",
+            wraps=has_workspace_resource_id,
+        ) as recognize:
+            to_remove, not_found = _validate_uninstall_packages(["sdk"], [entry], logger)
+
+        recognize.assert_called_once_with("sdk", [entry])
+        assert to_remove == [entry]
+        assert not_found == []
+        logger.error.assert_not_called()
+
+    def test_duplicate_workspace_ids_remain_ambiguous(self) -> None:
+        """Recognizing an ID must not bypass the canonical selector's ambiguity check."""
+        logger = _make_logger()
+        entries = [
+            {
+                "id": "sdk",
+                "kind": "knowledge",
+                "git": "https://github.com/acme/resources",
+                "path": path,
+            }
+            for path in ("one/sdk", "two/sdk")
+        ]
+
+        to_remove, not_found = _validate_uninstall_packages(["sdk"], entries, logger)
+
+        assert to_remove == []
+        assert not_found == ["sdk"]
+        logger.error.assert_called_once()
+        assert "Ambiguous dependency" in logger.error.call_args.args[0]
+
     def test_matches_simple_shorthand(self):
         """Simple 'org/repo' package matched against deps list."""
         logger = _make_logger()

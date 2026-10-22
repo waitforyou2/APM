@@ -8,8 +8,44 @@ from apm_cli.deps.lockfile import LockedDependency, LockFile
 from apm_cli.models.dependency.reference import DependencyReference
 from apm_cli.models.dependency.selection import (
     DependencySelectionStatus,
+    has_workspace_resource_id,
     select_manifest_dependency,
 )
+
+
+@pytest.mark.parametrize("kind", ["skills", "agents", "knowledge", "workflows"])
+def test_workspace_id_format_check_and_selection_agree(kind: str) -> None:
+    """Compact Git resource IDs have one matching rule for validation and selection."""
+    entry = {
+        "id": "sdk",
+        "kind": kind,
+        "git": "https://github.com/acme/resources",
+        "path": "resources/sdk",
+    }
+    entries = ["acme/other", entry]
+
+    assert has_workspace_resource_id("sdk", entries) is True
+    selection = select_manifest_dependency("sdk", entries, lockfile=None)
+    assert selection.status is DependencySelectionStatus.MATCHED
+    assert selection.manifest_entry is entry
+    assert selection.match_count == 1
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        "sdk",
+        None,
+        {"id": "sdk"},
+        {"kind": "knowledge", "alias": "sdk"},
+        {"id": "SDK", "kind": "knowledge"},
+        {"id": "other", "kind": "knowledge"},
+    ],
+)
+def test_workspace_id_check_does_not_guess_missing_or_different_ids(entry: object) -> None:
+    """Only an exact id plus kind can bypass the legacy bare-name format guard."""
+    assert has_workspace_resource_id("sdk", [entry]) is False
+    assert has_workspace_resource_id("sdk", []) is False
 
 
 def _local_lock(*paths: str, alias: str) -> LockFile:

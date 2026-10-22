@@ -13,6 +13,7 @@ from ...integration.mcp_integrator import MCPIntegrator
 from ...models.apm_package import DependencyReference
 from ...models.dependency.selection import (
     DependencySelectionStatus,
+    has_workspace_resource_id,
     select_manifest_dependency,
 )
 from ...models.dependency.selection import (
@@ -642,10 +643,7 @@ def _validate_uninstall_packages(
         # so paths fall through to DependencyReference parsing on
         # every platform.
         is_local = DependencyReference.is_local_path(package)
-        declared_id = any(
-            isinstance(entry, dict) and "kind" in entry and entry.get("id") == package
-            for entry in current_deps
-        )
+        declared_id = has_workspace_resource_id(package, current_deps)
         if "/" not in package and not is_local and not declared_id:
             if package in mkt_refs_set:
                 canonical = mkt_resolved.get(package)
