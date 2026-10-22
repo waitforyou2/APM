@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+from urllib.parse import urlsplit
 
 import pytest
 from click.testing import CliRunner
@@ -25,6 +26,7 @@ from tests.unit.registry.test_skill_link_auto_token import automatic as automati
         "https://skills.example.test/api/mcpService/external/skills/link/v1/get",
         "https://skills.example.test/Gateway/v7/ArtifactLink",
         "https://skills.example.test/Gateway/v7/ArtifactLink/",
+        "https://agentcenter.example.test:8443/Gateway/v7/ArtifactLink",
     ],
 )
 def test_configured_path_is_used_exactly_in_install_and_cold_replay(
@@ -51,6 +53,7 @@ def test_configured_path_is_used_exactly_in_install_and_cold_replay(
     entry = lock["dependencies"][0]
     requested = endpoint + "?skillId=frontend-design&version=0.0.1"
     assert entry["agentcenter_url"] == entry["resolved_url"] == requested
+    assert entry["host"] == urlsplit(endpoint).hostname
     for item in lock["deployments"]:
         assert item["owners"] == ["agentcenter:" + endpoint + "?skillId=frontend-design"]
         assert item["active_owner"] == item["owners"][0]

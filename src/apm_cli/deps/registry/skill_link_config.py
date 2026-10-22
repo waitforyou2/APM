@@ -112,6 +112,9 @@ def parse_skill_link_entry(entry: dict, registry_name: str, endpoint_url: str):
     dep.alias = dep.alias or dep.repo_url
     dep.registry_name = registry_name
     dep.agentcenter_url = link_url(endpoint_url, dep.repo_url, dep.reference)
+    # The generic registry parser defaults to GitHub. Record this provider's
+    # API host instead; the temporary ZIP URL is not the package source.
+    dep.host = urlsplit(dep.agentcenter_url).hostname
     return dep
 
 

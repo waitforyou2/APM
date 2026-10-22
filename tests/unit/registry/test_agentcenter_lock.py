@@ -127,6 +127,7 @@ def test_real_install_replay_ownership_and_old_lock_rejection(
     initial = load_yaml(lock_path)
     entry = initial["dependencies"][0]
     assert entry["agentcenter_url"] == entry["resolved_url"] == URL
+    assert entry["host"] == "skills.example.test"
     assert "skill_link_url" not in entry
     for deployment in initial["deployments"]:
         assert deployment["owners"] == [OWNER]
@@ -141,10 +142,24 @@ def test_real_install_replay_ownership_and_old_lock_rejection(
     assert result.exit_code == 0, result.output + repr(result.exception)
     assert lock_path.read_bytes() == lock_bytes
     assert transport["links"] == 1
+
+    # Simulate a lock emitted before the API host fix. Refresh must correct only
+    # the source host without changing the immutable archive pin or ownership.
+    old_lock = load_yaml(lock_path)
+    old_lock["dependencies"][0]["host"] = "github.com"
+    dump_yaml(old_lock, lock_path)
     result = install("--refresh")
     assert result.exit_code == 0, result.output + repr(result.exception)
     assert transport["links"] == transport["tokens"] == 2
-    assert load_yaml(lock_path)["dependencies"][0]["resolved_hash"] == entry["resolved_hash"]
+    refreshed = load_yaml(lock_path)
+    assert refreshed["dependencies"] == initial["dependencies"]
+    assert refreshed["deployments"] == initial["deployments"]
+    assert deployed.read_bytes() == deployed_bytes
+    refreshed_bytes = lock_path.read_bytes()
+    result = install("--frozen")
+    assert result.exit_code == 0, result.output + repr(result.exception)
+    assert lock_path.read_bytes() == refreshed_bytes
+    assert transport["links"] == transport["tokens"] == 2
 
     # No compatibility read, even when both field names are present.
     invalid = load_yaml(lock_path)

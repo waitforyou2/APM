@@ -420,6 +420,10 @@ def test_cli_mixed_install_frozen_reinstall_and_noop(tmp_path, monkeypatch, tran
     assert (project / ".cac/agents/security-auditor.md").is_file()
     lock_before = load_yaml(project / "apm.lock.yaml")
     assert len(lock_before["dependencies"]) == 2
+    assert {entry["alias"]: entry["host"] for entry in lock_before["dependencies"]} == {
+        "frontend-design": "skills.example.test",
+        "security-auditor": "codehub.example.test",
+    }
     assert "Signature" not in (project / "apm.lock.yaml").read_text()
     calls = transport["links"]
     install()
