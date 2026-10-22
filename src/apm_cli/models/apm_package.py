@@ -203,11 +203,11 @@ def _parse_registries_block(
             )
         provider = body.get("provider")
         if provider is not None:
-            from ..deps.registry.skill_link_config import PROVIDER, normalize_base_url
+            from ..deps.registry.skill_link_config import PROVIDER, normalize_endpoint_url
 
             if provider != PROVIDER:
                 raise ValueError(f"Unknown registry provider: {provider!r}")
-            url = normalize_base_url(url)
+            url = normalize_endpoint_url(url)
         registries_map[name] = url
 
     default_name: str | None = None

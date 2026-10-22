@@ -8,9 +8,9 @@ from urllib.parse import urljoin, urlsplit
 
 import requests
 
-from .auth import _credential_origin_matches, _sanitized
+from .auth import _sanitized
 from .skill_link_auth import W3AuthProfile, get_w3_profile, validate_header
-from .skill_link_config import link_url, normalize_base_url
+from .skill_link_config import link_url, normalize_endpoint_url
 
 MAX_LINK_BYTES = 1024 * 1024
 MAX_DOWNLOAD_BYTES = 128 * 1024 * 1024
@@ -124,13 +124,26 @@ def _fetch_w3_token(profile: W3AuthProfile) -> str:
         raise SkillLinkError("W3 token API did not return a valid result.newToken") from None
 
 
-def credential_headers(registry_name: str, base_url: str) -> dict[str, str]:
+def _credential_endpoint_matches(registry_name: str, endpoint_url: str) -> bool:
+    """Manual credentials must be bound to this exact endpoint, including its path."""
+    from ...config import get_registry_config
+
+    configured = get_registry_config(registry_name)
     try:
-        profile = get_w3_profile(registry_name, base_url)
+        return isinstance(configured, dict) and normalize_endpoint_url(
+            configured.get("url")
+        ) == normalize_endpoint_url(endpoint_url)
+    except ValueError:
+        return False
+
+
+def credential_headers(registry_name: str, endpoint_url: str) -> dict[str, str]:
+    try:
+        profile = get_w3_profile(registry_name, endpoint_url)
     except ValueError as exc:
         raise SkillLinkError(str(exc)) from None
     if profile is not None:
-        # Built-in service_url is the administrator's trust binding. Neither
+        # Built-in agentcenter_url is the administrator's trust binding. Neither
         # a workspace nor a stale environment token can override this profile.
         token = _fetch_w3_token(profile)
         return {
@@ -140,9 +153,9 @@ def credential_headers(registry_name: str, base_url: str) -> dict[str, str]:
             "X-HW-APPKEY": profile.hw_appkey,
             "X-AUTH-TOKEN": token,
         }
-    if not _credential_origin_matches(registry_name, base_url):
+    if not _credential_endpoint_matches(registry_name, endpoint_url):
         raise SkillLinkError(
-            f"Bind credentials to this service first: apm config set registry.{registry_name}.url <base-url>"
+            f"Bind credentials to this endpoint first: apm config set registry.{registry_name}.url <full-endpoint-url>"
         )
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     for header, suffix in HEADER_ENV.items():
@@ -157,14 +170,14 @@ def credential_headers(registry_name: str, base_url: str) -> dict[str, str]:
 
 
 class SkillLinkClient:
-    def __init__(self, registry_name: str, base_url: str):
+    def __init__(self, registry_name: str, endpoint_url: str):
         self.registry_name = registry_name
-        self.base_url = normalize_base_url(base_url)
+        self.endpoint_url = normalize_endpoint_url(endpoint_url)
 
     def _get_link(self, skill_id: str, version: str) -> str:
         status, _, body = _request(
-            link_url(self.base_url, skill_id, version),
-            credential_headers(self.registry_name, self.base_url),
+            link_url(self.endpoint_url, skill_id, version),
+            credential_headers(self.registry_name, self.endpoint_url),
             MAX_LINK_BYTES,
             "Skill Link API",
         )

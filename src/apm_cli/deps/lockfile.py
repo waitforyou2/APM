@@ -292,12 +292,12 @@ class LockedDependency:
         if type(self.compact_resource) is not bool:
             raise ValueError("compact_resource must be a boolean")
         if self.agentcenter_url is not None:
-            from .registry.skill_link_config import agentcenter_base_url
+            from .registry.skill_link_config import agentcenter_endpoint_url
 
             if self.source != "registry":
                 raise ValueError("agentcenter_url requires source: registry")
             ResourceSpec.parse({"kind": "skills", "name": self.repo_url})
-            agentcenter_base_url(self.agentcenter_url, self.repo_url, self.version)
+            agentcenter_endpoint_url(self.agentcenter_url, self.repo_url, self.version)
             if self.resolved_url is not None and self.resolved_url != self.agentcenter_url:
                 raise ValueError(
                     "resolved_url must equal agentcenter_url for AgentCenter resources"

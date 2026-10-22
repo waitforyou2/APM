@@ -7,19 +7,21 @@ from urllib.parse import urlencode, urlsplit, urlunsplit
 
 PROVIDER = "skill-link-v1"
 BUILTIN_REGISTRY = "corp-skills"
-ENDPOINT = "/external/skills/link/v1/get"
 _VERSION = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
 )
 
 
-def normalize_base_url(value: str) -> str:
-    """Validate a credential-free HTTPS service base, preserving path case."""
+def normalize_endpoint_url(value: str) -> str:
+    """Validate a full configured endpoint without adding or rewriting its path."""
+    if not isinstance(value, str):
+        raise ValueError("AgentCenter endpoint must be a complete HTTPS URL")
     try:
         parsed = urlsplit(value)
         valid = (
             parsed.scheme == "https"
             and parsed.hostname
+            and parsed.path not in ("", "/")
             and not parsed.username
             and not parsed.password
             and not parsed.query
@@ -33,47 +35,47 @@ def normalize_base_url(value: str) -> str:
     except (ValueError, TypeError):
         valid = False
     if not valid:
-        raise ValueError("skill-link-v1 url must be an HTTPS base URL without credentials or query")
+        raise ValueError(
+            "AgentCenter endpoint must be a complete HTTPS URL with a path, "
+            "without credentials, query or fragment"
+        )
     host = parsed.hostname.lower()
     if ":" in host:
         host = f"[{host}]"
     authority = host + (f":{port}" if port and port != 443 else "")
-    return urlunsplit(("https", authority, parsed.path.rstrip("/"), "", ""))
+    return urlunsplit(("https", authority, parsed.path, "", ""))
 
 
-def link_url(base_url: str, skill_id: str, version: str) -> str:
-    """Stable lockfile locator; never a signed object-storage download URL."""
+def link_url(endpoint_url: str, skill_id: str, version: str) -> str:
+    """Add resource query parameters to the administrator's complete endpoint."""
     return (
-        normalize_base_url(base_url)
-        + ENDPOINT
+        normalize_endpoint_url(endpoint_url)
         + "?"
         + urlencode({"skillId": skill_id, "version": version})
     )
 
 
-def agentcenter_base_url(url: str, skill_id: str, version: str) -> str:
-    """Validate a complete request locator and recover its trusted service base."""
+def agentcenter_endpoint_url(url: str, skill_id: str, version: str) -> str:
+    """Recover the configured endpoint by removing only validated query parameters."""
     validate_version(version)
     if not isinstance(url, str):
         raise ValueError("agentcenter_url must be a complete HTTPS request URL")
     try:
         parsed = urlsplit(url)
-        if not parsed.path.endswith(ENDPOINT):
-            raise ValueError
-        base = normalize_base_url(
-            urlunsplit((parsed.scheme, parsed.netloc, parsed.path[: -len(ENDPOINT)], "", ""))
+        endpoint = normalize_endpoint_url(
+            urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
         )
     except (ValueError, TypeError):
         raise ValueError("agentcenter_url must contain the complete Skill Link endpoint") from None
-    if url != link_url(base, skill_id, version):
+    if url != link_url(endpoint, skill_id, version):
         raise ValueError("agentcenter_url must match the dependency's skillId and exact version")
-    return base
+    return endpoint
 
 
 def agentcenter_identity(url: str, skill_id: str, version: str) -> str:
     """Version-independent ownership key with the complete service endpoint."""
-    base = agentcenter_base_url(url, skill_id, version)
-    return f"agentcenter:{base}{ENDPOINT}?{urlencode({'skillId': skill_id})}"
+    endpoint = agentcenter_endpoint_url(url, skill_id, version)
+    return f"agentcenter:{endpoint}?{urlencode({'skillId': skill_id})}"
 
 
 def validate_version(version: str) -> None:
@@ -83,7 +85,7 @@ def validate_version(version: str) -> None:
         )
 
 
-def parse_skill_link_entry(entry: dict, registry_name: str, base_url: str):
+def parse_skill_link_entry(entry: dict, registry_name: str, endpoint_url: str):
     """Parse a single skill, retaining the existing dependency/target contracts."""
     from ...models.dependency.reference import DependencyReference
     from ...models.dependency.registry_entry import parse_registry_object_entry
@@ -109,7 +111,7 @@ def parse_skill_link_entry(entry: dict, registry_name: str, base_url: str):
     validate_version(dep.reference)
     dep.alias = dep.alias or dep.repo_url
     dep.registry_name = registry_name
-    dep.agentcenter_url = link_url(base_url, dep.repo_url, dep.reference)
+    dep.agentcenter_url = link_url(endpoint_url, dep.repo_url, dep.reference)
     return dep
 
 
@@ -139,9 +141,9 @@ def builtin_registry_block(data: dict) -> dict | None:
             break
     if not needs_builtin:
         return None
-    from .skill_link_auth import get_builtin_service_url
+    from .skill_link_auth import get_builtin_agentcenter_url
 
-    url = get_builtin_service_url(BUILTIN_REGISTRY)
+    url = get_builtin_agentcenter_url(BUILTIN_REGISTRY)
     if url is None:
         return None
     return {BUILTIN_REGISTRY: {"provider": PROVIDER, "url": url}, "default": BUILTIN_REGISTRY}

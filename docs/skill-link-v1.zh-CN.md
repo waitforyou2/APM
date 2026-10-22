@@ -19,7 +19,7 @@ targets: [cac]
 registries:
   corp-skills:
     provider: skill-link-v1
-    url: https://你的服务域名
+    url: https://你的服务域名/api/mcpService/external/skills/link/v1/get
   default: corp-skills
 
 dependencies:
@@ -28,12 +28,11 @@ dependencies:
       version: "0.0.1"
 ```
 
-`url` 是服务根地址（可带统一网关路径前缀），不要填写查询参数或 `/external/skills/link/v1/get`。
-APM 会拼接该固定端点，用 GET 查询 `skillId` 和 `version`。可以配置多个命名服务，
+`url` 直接填写完整下载链接接口地址，不含查询参数。APM 不再附加任何固定路径，只用 GET 传入 `skillId` 和 `version`。可以配置多个命名服务，
 在依赖中用 `registry: <名字>` 选择；声明默认服务后，Git 依赖请明确使用 `git:` 对象。
 原生 APM Registry 继续使用 `{url: ...}`，不填写 `provider`。
 
-依赖允许 `id`、`version`、`registry`、`alias`、`targets`。
+依赖允许 `id`、`kind`、`version`、`registry`、`alias`、`targets`。`kind` 可为 `skills` 或 `knowledge`。
 `id` 和 `alias` 使用小写字母、数字、连字符，最多 64 字符，禁止 Windows 设备名。
 `alias` 不填时等于 ID，控制 `.cac/skills/<alias>/` 的目录名；`SKILL.md` 内容保持原样。
 版本必须是完整的固定版本，如 `0.0.1`、`1.0.0-beta.1`；不支持 `latest`、`^`、`~`、版本范围。
@@ -42,7 +41,7 @@ Workspace 的关系字段引用 `alias`（不填写 alias 则引用 id）。
 
 这是此定制分支的扩展，不是 OpenAPM 标准协议。请使用现有不带 `$schema` 的 apm.yml；
 不要给它声明 OpenAPM v0.1 的 `$schema`。可以保留自己的 `schemaVersion` 元数据。
-provider 必须声明在项目的 apm.yml；本机配置只用于绑定凭据和 URL。
+显式下载源在项目的 registries 中声明 provider；使用管理员内置配置时可省略整个 registries。手动认证模式下，本机配置只用于绑定凭据和完整接口 URL。
 
 ## 2. 本机认证（PowerShell）
 
@@ -51,7 +50,7 @@ provider 必须声明在项目的 apm.yml；本机配置只用于绑定凭据和
 ```powershell
 $apm = "D:\APM\dist\apm\apm.exe"
 & $apm experimental enable registries
-& $apm config set registry.corp-skills.url "https://你的服务域名"
+& $apm config set registry.corp-skills.url "https://你的服务域名/api/mcpService/external/skills/link/v1/get"
 ```
 
 该 URL 与项目配置一致，表示本机信任向这个服务发送名为 `corp-skills` 的凭据。
@@ -72,13 +71,13 @@ Set-SessionSecret "APM_REGISTRY_AUTH_TOKEN_CORP_SKILLS" "X-AUTH-TOKEN"
 ```
 
 认证变量后缀来自 registry 名称：大写，`-`/`.` 换成 `_`。
-认证值由调用者提供/更新，本版本不自动登录或刷新 X-AUTH-TOKEN。
+认证值由调用者提供/更新，该手动模式不自动登录或刷新 X-AUTH-TOKEN；内置管理员配置模式按自动认证说明获取 Token。
 环境变量仍能被有本机进程访问权限的人读取，EXE 打包也不会让内嵌密钥变成秘密。
 
 服务收到：
 
 ```http
-GET /external/skills/link/v1/get?skillId=frontend-design&version=0.0.1
+GET /api/mcpService/external/skills/link/v1/get?skillId=frontend-design&version=0.0.1
 Content-Type: application/json
 X-HW-ID: <环境变量>
 X-HW-APPKEY: <环境变量>

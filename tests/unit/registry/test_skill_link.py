@@ -21,7 +21,7 @@ from apm_cli.deps.registry.skill_link_config import link_url
 from apm_cli.models.apm_package import APMPackage
 from apm_cli.models.dependency.reference import DependencyReference
 
-BASE = "https://skills.example.test"
+BASE = "https://skills.example.test/external/skills/link/v1/get"
 SIGNED = "https://objects.example.test/package.zip?Signature=private-signature"
 W3_URL = "https://sso.example.test/api/ssoproxysvr/v2/w3tokens"
 
@@ -117,7 +117,7 @@ def transport(monkeypatch):
                 response.headers["Location"] = SIGNED
             if state.get("token_non_json"):
                 response._content = b"invalid JSON containing private data"
-        elif request.url.startswith(BASE):
+        elif request.url.split("?", 1)[0] == state.get("endpoint", BASE):
             state["links"] += 1
             assert request.method == "GET"
             assert not request.body
@@ -182,7 +182,7 @@ def test_manifest_mixes_git_and_skill_and_roundtrips(tmp_path):
         "alias": "frontend-design",
         "registry": "corp-skills",
     }
-    other = dependency(tmp_path, url="https://other.example.test")
+    other = dependency(tmp_path, url="https://other.example.test/custom/link")
     assert other.get_unique_key() != skill.get_unique_key()
     with pytest.raises(ValueError, match="owner/repo"):
         DependencyReference.parse_from_dict({"id": "frontend-design", "version": "0.0.1"})

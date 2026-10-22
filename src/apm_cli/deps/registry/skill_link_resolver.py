@@ -17,7 +17,12 @@ from ...utils.yaml_io import dump_yaml
 from ..resource_projection import project_resource_directory
 from .extractor import extract_zip
 from .skill_link_client import SkillLinkClient, SkillLinkError
-from .skill_link_config import agentcenter_base_url, link_url, normalize_base_url, validate_version
+from .skill_link_config import (
+    agentcenter_endpoint_url,
+    link_url,
+    normalize_endpoint_url,
+    validate_version,
+)
 
 
 def _validate_members(data: bytes) -> None:
@@ -73,8 +78,8 @@ def download_skill_link(
     """Return PackageInfo + lock metadata; temporary signed links stay in memory."""
     from .resolver import RegistryResolution
 
-    base = agentcenter_base_url(dep.agentcenter_url, dep.repo_url, dep.reference)
-    if base != normalize_base_url(configured_url):
+    endpoint = agentcenter_endpoint_url(dep.agentcenter_url, dep.repo_url, dep.reference)
+    if endpoint != normalize_endpoint_url(configured_url):
         raise SkillLinkError(
             "Skill Link source differs from the configured registry; regenerate the lock explicitly"
         )
@@ -92,12 +97,12 @@ def download_skill_link(
     ResourceSpec.parse({"kind": "skills", "name": dep.repo_url})
     if dep.virtual_path or dep.skill_subset:
         raise SkillLinkError("Skill Link packages do not support path or skills subsets")
-    locator = link_url(base, dep.repo_url, version)
+    locator = link_url(endpoint, dep.repo_url, version)
     if resolved_url is not None and (resolved_url != locator or not resolved_hash):
         raise SkillLinkError(
             "Skill Link lockfile locator/hash does not match the configured dependency"
         )
-    data = SkillLinkClient(dep.registry_name, base).download(dep.repo_url, version)
+    data = SkillLinkClient(dep.registry_name, endpoint).download(dep.repo_url, version)
     digest = hashlib.sha256(data).hexdigest()
     _validate_members(data)
     target.parent.mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,4 @@
-# Replace the service base URL; never put credentials in this file.
+# Configure the complete download-link endpoint; never put credentials in this file.
 name: design-workspace
 version: "0.1.0"
 description: DME设计作业空间
@@ -11,7 +11,7 @@ targets: [cac]
 registries:
   corp-skills:
     provider: skill-link-v1
-    url: https://skills.example.com
+    url: https://skills.example.com/external/skills/link/v1/get
   default: corp-skills
 
 dependencies:

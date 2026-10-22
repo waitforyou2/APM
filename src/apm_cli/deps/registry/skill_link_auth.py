@@ -8,14 +8,13 @@ from someone who possesses the executable. Keep real values out of Git.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from urllib.parse import urlsplit
 
-from .skill_link_config import normalize_base_url
+from .skill_link_config import normalize_endpoint_url
 
 
 @dataclass(frozen=True)
 class W3AuthProfile:
-    service_url: str
+    agentcenter_url: str
     token_url: str
     hw_id: str = field(repr=False)
     hw_appkey: str = field(repr=False)
@@ -49,18 +48,28 @@ def validate_header(value: object, label: str) -> str:
     return value
 
 
-def get_builtin_service_url(registry_name: str) -> str | None:
+def get_builtin_agentcenter_url(registry_name: str) -> str | None:
     """Read only the public routing address; never authenticate while parsing YAML."""
     profiles = _load_private_profiles()
     if registry_name not in profiles:
         return None
     raw = profiles[registry_name]
-    if not isinstance(raw, dict) or not isinstance(raw.get("service_url"), str):
-        raise ValueError("Administrator Skill Link service_url must be a string")
-    return normalize_base_url(raw["service_url"])
+    _reject_legacy_service_url(raw)
+    if not isinstance(raw, dict) or not isinstance(raw.get("agentcenter_url"), str):
+        raise ValueError("Administrator Skill Link agentcenter_url must be a string")
+    return normalize_endpoint_url(raw["agentcenter_url"])
 
 
-def get_w3_profile(registry_name: str, base_url: str) -> W3AuthProfile | None:
+def _reject_legacy_service_url(raw: object) -> None:
+    if isinstance(raw, dict) and "service_url" in raw:
+        raise ValueError(
+            "Administrator service_url is no longer supported; replace it with "
+            "agentcenter_url containing the complete download-link endpoint. "
+            "No endpoint path is appended automatically."
+        )
+
+
+def get_w3_profile(registry_name: str, endpoint_url: str) -> W3AuthProfile | None:
     """Return an exact-origin-bound build profile, or keep legacy environment auth.
 
     A profile with the right name and wrong service URL fails closed. It must not
@@ -70,17 +79,16 @@ def get_w3_profile(registry_name: str, base_url: str) -> W3AuthProfile | None:
     if registry_name not in profiles:
         return None
     raw = profiles[registry_name]
-    required = {"service_url", "token_url", "hw_id", "hw_appkey", "account", "password"}
+    _reject_legacy_service_url(raw)
+    required = {"agentcenter_url", "token_url", "hw_id", "hw_appkey", "account", "password"}
     if not isinstance(raw, dict) or set(raw) != required:
         raise ValueError("Administrator Skill Link profile has missing or unknown fields")
-    if not all(isinstance(raw[key], str) for key in ("service_url", "token_url")):
-        raise ValueError("Administrator Skill Link service_url and token_url must be strings")
-    service = normalize_base_url(raw["service_url"])
-    if service != normalize_base_url(base_url):
+    if not all(isinstance(raw[key], str) for key in ("agentcenter_url", "token_url")):
+        raise ValueError("Administrator Skill Link agentcenter_url and token_url must be strings")
+    service = normalize_endpoint_url(raw["agentcenter_url"])
+    if service != normalize_endpoint_url(endpoint_url):
         raise ValueError("Skill Link service URL does not match the administrator profile")
-    token_url = normalize_base_url(raw["token_url"])
-    if not urlsplit(token_url).path:
-        raise ValueError("Administrator Skill Link token_url must include the token endpoint path")
+    token_url = normalize_endpoint_url(raw["token_url"])
     hw_id = validate_header(raw["hw_id"], "X-HW-ID")
     hw_appkey = validate_header(raw["hw_appkey"], "X-HW-APPKEY")
     for key in ("account", "password"):

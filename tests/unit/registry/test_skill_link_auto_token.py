@@ -22,7 +22,7 @@ from tests.unit.registry.test_skill_link import transport as transport
 @pytest.fixture
 def automatic(monkeypatch, transport, credentials):
     profile = {
-        "service_url": BASE,
+        "agentcenter_url": BASE,
         "token_url": W3_URL,
         "hw_id": "test-application-id",
         "hw_appkey": "test-application-key",
@@ -124,7 +124,7 @@ def test_token_transport_exception_redacted(monkeypatch, automatic, transport):
 @pytest.mark.parametrize(
     "field,value",
     [
-        ("service_url", None),
+        ("agentcenter_url", None),
         ("token_url", {}),
         ("token_url", "http://sso.example.test/token"),
         ("token_url", "https://sso.example.test/token?key=private"),

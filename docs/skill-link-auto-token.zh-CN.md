@@ -35,12 +35,12 @@ if (-not (Test-Path -LiteralPath $privateFile)) {
 notepad $privateFile
 ```
 
-文件内容如下。只需在本机填好四个空字符串：
+文件内容如下。新建配置时在本机填好四个空字符串。已有配置请将旧的 `service_url` 改名为 `agentcenter_url`，并填写完整下载链接接口地址；保留其余账号、密码和请求头值。旧字段不会自动转换。
 
 ```python
 PROFILES = {
     "corp-skills": {
-        "service_url": "https://apigw-cn-south02.huawei.com/api/mcpService",
+        "agentcenter_url": "https://apigw-cn-south02.huawei.com/api/mcpService/external/skills/link/v1/get",
         "token_url": "https://apigw-cn-south.huawei.com/api/ssoproxysvr/v2/w3tokens",
         "hw_id": "",
         "hw_appkey": "",
@@ -52,7 +52,7 @@ PROFILES = {
 
 | 配置字段 | 用途 |
 | --- | --- |
-| `service_url` | 可信的 Skill 下载链接服务基地址，包含 `/api/mcpService` |
+| `agentcenter_url` | 可信的完整下载链接接口地址，不含 skillId/version 查询参数 |
 | `token_url` | 获取 Token 的完整 POST 接口地址 |
 | `hw_id` | 两个 API 共同使用的 `X-HW-ID` |
 | `hw_appkey` | 两个 API 共同使用的 `X-HW-APPKEY` |
@@ -75,7 +75,7 @@ PyInstaller 会在它存在时把它包含到构建中。更改这些固定值�
 下面的检查只验证私有配置能否正确加载，不发起网络请求，也不输出凭据：
 
 ```powershell
-uv run python -c "from apm_cli.deps.registry.skill_link_auth import get_w3_profile; p=get_w3_profile('corp-skills', 'https://apigw-cn-south02.huawei.com/api/mcpService'); assert p is not None, 'Private profile is missing'; print('Automatic token profile: OK')"
+uv run python -c "from apm_cli.deps.registry.skill_link_auth import get_w3_profile; p=get_w3_profile('corp-skills', 'https://apigw-cn-south02.huawei.com/api/mcpService/external/skills/link/v1/get'); assert p is not None, 'Private profile is missing'; print('Automatic token profile: OK')"
 ```
 
 看到 `Automatic token profile: OK` 后执行：
@@ -108,8 +108,8 @@ Set-Location "D:\apm-api-test-20261020-115346"
 
 - 用户不需要配置 `APM_REGISTRY_HW_ID_*`、`APM_REGISTRY_HW_APPKEY_*`、`APM_REGISTRY_AUTH_TOKEN_*`。
 - 管理员配置优先；遗留环境变量中的旧值不会覆盖它。
-- 内置 `service_url` 就是该凭据的可信绑定，不要求用户另行执行 `config set registry...url`。
-- registry 名称须与内置 `corp-skills` 一致，服务基地址也须一致；不一致时停止，不把凭据发到其他地址。
+- 内置 `agentcenter_url` 就是该凭据的可信绑定，不要求用户另行执行 `config set registry...url`。
+- registry 名称须与内置 `corp-skills` 一致，完整接口地址也须一致；不一致时停止，不把凭据发到其他地址。
 - 新同事首次使用仍需执行一次 `apm experimental enable registries`，沿用原功能开关。
 
 未内置该 registry 的配置时，仍保持上一版手动环境变量认证和本机 URL 绑定方式。

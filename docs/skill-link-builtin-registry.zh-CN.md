@@ -1,13 +1,13 @@
 # 内置默认 Skill 下载源
 
 适用于已安装自动获取 W3 Token 更新、且管理员已填写 `_skill_link_private.py` 的定制 APM。
-该更新不修改私有配置文件，也不增加需要填写的配置项。
+代码补丁不会覆盖私有配置文件。已有旧配置须由管理员将 `service_url` 改成 `agentcenter_url` 并填入完整接口地址。
 
 ## 生效规则
 
 | apm.yml 内容 | 行为 |
 | --- | --- |
-| 没有 `registries`，包含 `id + version` 资源 | 默认使用内置 `corp-skills`，协议为 `skill-link-v1`，URL 从私有配置的 `service_url` 读取 |
+| 没有 `registries`，包含 `id + version` 资源 | 默认使用内置 `corp-skills`，协议为 `skill-link-v1`，URL 从私有配置的 `agentcenter_url` 读取 |
 | 显式声明 `registries` | 沿用显式声明；下载时仍校验凭据与服务地址的绑定 |
 | `git:` 资源 | 沿用 Git 下载 |
 | 只有 Git 资源 | 不加载私有配置，不因本更新要求启用 registry 功能 |
@@ -49,14 +49,14 @@ dependencies:
 src/apm_cli/deps/registry/_skill_link_private.py
 ```
 
-此次确认的 Skill 服务基地址为：
+管理员配置的完整下载链接接口地址示例为：
 
 ```text
-https://apigw-cn-south02.huawei.com/api/mcpService
+https://apigw-cn-south02.huawei.com/api/mcpService/external/skills/link/v1/get
 ```
 
-如果你已经在 `PROFILES["corp-skills"]["service_url"]` 中改好并验证成功，不需要再编辑。
-默认路由直接读取这一个地址，不会使用旧的 `bzz.com` 常量；解析器中也没有第二份服务地址。
+如果你已经在 `PROFILES["corp-skills"]["agentcenter_url"]` 中改好并验证成功，不需要再编辑其他地址常量。
+默认路由直接读取这一个完整地址，代码不再附加固定接口路径，只添加 skillId/version 查询参数。
 Token 接口仍由同一配置的 `token_url` 指定。
 账号密码与请求头不放入 apm.yml，也不放入锁文件。
 
@@ -71,7 +71,7 @@ registry 实验功能开关保持原规则；已经启用的机器无需重复�
 ## 从现有 workspace 迁移
 
 1. 在已验证自动 Token 的源码上应用增量补丁。
-2. 保留你已填写的 `_skill_link_private.py`，不要用空模板覆盖。
+2. 保留你已填写的 `_skill_link_private.py`，不要用空模板覆盖；按上文更新地址字段。
 3. 使用 `uv run pyinstaller --clean build/apm.spec --noconfirm` 重新打包。
 4. 在 workspace 的 apm.yml 中删除整个 `registries` 字段，其余配置不变。
 5. 使用新 EXE 安装。
@@ -89,7 +89,7 @@ registry 实验功能开关保持原规则；已经启用的机器无需重复�
 ```
 
 `--refresh` 仍校验固定 ID + version 对应的 ZIP 哈希，不会把内容变化当成正常更新。
-不需要删除旧锁文件或已安装目录。
+已经使用 `agentcenter_url` 的锁文件无需删除，前提是实际完整请求地址保持一致。含 `skill_link_url` 的旧锁文件需按 [锁文件更新说明](agentcenter-lock.zh-CN.md) 备份后重建。
 如果你更换了实际服务地址，冻结安装会识别到来源变化并拒绝沿用不匹配的锁定记录；应确认来源变更后再运行普通安装。
 
 ## 验证说明

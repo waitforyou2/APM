@@ -36,7 +36,7 @@ deployments:
 
 ## 地址配置
 
-`src/apm_cli/deps/registry/_skill_link_private.py` 的 `service_url` 继续配置服务根地址，例如 `https://apigw-cn-south02.huawei.com/api/mcpService`。固定的接口路径由 `skill_link_config.py` 中的 `ENDPOINT` 拼接，资源 ID 和版本由 Workspace 声明提供，不要把接口路径再填入 `service_url`。
+`src/apm_cli/deps/registry/_skill_link_private.py` 现在用 `agentcenter_url` 直接配置完整接口地址，例如 `https://apigw-cn-south02.huawei.com/api/mcpService/external/skills/link/v1/get`。代码不附加固定路径，只从 Workspace 传入 `skillId` 和 `version` 查询参数。已有配置中的 `service_url` 须手动改名并补全接口路径。
 
 Token 接口、认证配置及 `workspace.yml` 的 `id`、`kind`、`version` 写法不需要修改；Git 下载继续使用原有配置。本次不改动私有配置文件，不重命名下载协议的 `provider: skill-link-v1` 配置项，仅统一接口资源的身份标识和锁文件字段。
 

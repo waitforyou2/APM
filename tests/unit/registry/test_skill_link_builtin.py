@@ -39,10 +39,10 @@ def test_builtin_routes_objects_without_mutating_yaml(tmp_path, automatic, trans
 
 
 def test_url_comes_from_current_profile_not_another_constant(tmp_path, automatic):
-    automatic["service_url"] = "https://changed.example.test/api/mcpService/"
+    automatic["agentcenter_url"] = "https://changed.example.test/api/v2/custom-link/"
     pkg = APMPackage.from_mapping(implicit_manifest(), package_path=tmp_path)
     assert pkg.get_apm_dependencies()[0].agentcenter_url == link_url(
-        automatic["service_url"], "frontend-design", "0.0.1"
+        automatic["agentcenter_url"], "frontend-design", "0.0.1"
     )
 
 
@@ -67,10 +67,10 @@ def test_builtin_handles_dev_dependencies_and_serialized_registry_name(tmp_path,
 
 
 def test_explicit_provider_and_native_registry_take_precedence(tmp_path, automatic):
-    explicit = manifest(url="https://explicit.example.test")
+    explicit = manifest(url="https://explicit.example.test/custom/link")
     pkg = APMPackage.from_mapping(explicit, package_path=tmp_path)
     assert pkg.get_apm_dependencies()[0].agentcenter_url == link_url(
-        "https://explicit.example.test", "frontend-design", "0.0.1"
+        "https://explicit.example.test/custom/link", "frontend-design", "0.0.1"
     )
     explicit["registries"] = {"native": {"url": "https://native.test"}, "default": "native"}
     explicit["dependencies"]["apm"][0]["id"] = "acme/skill"
@@ -181,7 +181,7 @@ def test_implicit_default_overrides_stale_local_url_and_default(tmp_path, monkey
 
 @pytest.mark.parametrize("value", [None, {}, "http://insecure.test"])
 def test_bad_builtin_address_fails_without_network(tmp_path, automatic, transport, value):
-    automatic["service_url"] = value
+    automatic["agentcenter_url"] = value
     with pytest.raises(ValueError):
         APMPackage.from_mapping(implicit_manifest(), package_path=tmp_path)
     assert not transport["requests"]
@@ -236,7 +236,7 @@ def test_removing_explicit_block_preserves_lock_and_rejects_changed_origin(
     assert (tmp_path / "apm.lock.yaml").read_bytes() == original_lock
     assert "registries:" not in path.read_text()
 
-    automatic["service_url"] = "https://other.example.test"
+    automatic["agentcenter_url"] = "https://other.example.test/custom/link"
     clear_apm_yml_cache()
     calls = len(transport["requests"])
     result = runner.invoke(cli, ["install", "--no-policy", "--frozen"])

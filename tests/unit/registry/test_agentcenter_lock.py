@@ -10,14 +10,14 @@ from apm_cli.deps.lockfile import LockedDependency, LockfileFormatError
 from apm_cli.deps.registry.skill_link_config import agentcenter_identity, link_url
 from apm_cli.models.apm_package import APMPackage, clear_apm_yml_cache
 from apm_cli.utils.yaml_io import dump_yaml, load_yaml
-from tests.unit.registry.test_skill_link import BASE, manifest
 from tests.unit.registry.test_skill_link import credentials as credentials
+from tests.unit.registry.test_skill_link import manifest
 from tests.unit.registry.test_skill_link import transport as transport
 from tests.unit.registry.test_skill_link_auto_token import automatic as automatic
 
-SERVICE = BASE + "/api/mcpService"
-URL = SERVICE + "/external/skills/link/v1/get?skillId=frontend-design&version=0.0.1"
-OWNER = "agentcenter:" + SERVICE + "/external/skills/link/v1/get?skillId=frontend-design"
+SERVICE = "https://skills.example.test/api/mcpService/external/skills/link/v1/get"
+URL = SERVICE + "?skillId=frontend-design&version=0.0.1"
+OWNER = "agentcenter:" + SERVICE + "?skillId=frontend-design"
 
 
 @pytest.mark.parametrize("version", ["0.0.1", "1.0.0", "2.0.0-rc.1+build.3"])
@@ -57,7 +57,6 @@ def test_ownership_is_stable_across_versions(tmp_path, version):
         URL + "#fragment",
         URL.replace("https://", "http://"),
         URL.replace("https://", "https://user:secret@"),
-        URL.replace("/external/skills/link/v1/get", "/different/endpoint"),
         "",
     ],
 )
@@ -107,7 +106,8 @@ def test_old_field_is_rejected_even_if_new_field_also_exists(include_new, legacy
 def test_real_install_replay_ownership_and_old_lock_rejection(
     tmp_path, monkeypatch, transport, automatic, kind
 ):
-    automatic["service_url"] = SERVICE
+    automatic["agentcenter_url"] = SERVICE
+    transport["endpoint"] = SERVICE
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("APM_CACHE_DIR", str(tmp_path / "cache"))
     monkeypatch.setattr("apm_cli.commands._helpers.check_for_updates", lambda *a, **kw: None)
