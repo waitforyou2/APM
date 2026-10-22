@@ -303,7 +303,7 @@ class RegistryPackageResolver:
                 f"{dep_ref.repo_url!r} (source={dep_ref.source!r})"
             )
 
-        if dep_ref.skill_link_url:
+        if dep_ref.agentcenter_url:
             return self._download_skill_link(dep_ref, target_path)
 
         owner, repo = _split_owner_repo(dep_ref.repo_url)
@@ -374,7 +374,7 @@ class RegistryPackageResolver:
         locked version.  ``apm update`` bypasses this path entirely via
         ``update_refs=True``.
         """
-        if dep_ref.skill_link_url:
+        if dep_ref.agentcenter_url:
             return self._download_skill_link(
                 dep_ref,
                 target_path,

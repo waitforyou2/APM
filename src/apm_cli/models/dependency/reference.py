@@ -129,7 +129,7 @@ class DependencyReference(ProviderCoordinateMixin):
     source: str | None = None
     registry_name: str | None = None
     compact_resource: bool = False  # Authored as Workspace id/kind, not legacy resource.
-    skill_link_url: str | None = None  # Opt-in provider base; persisted for lock replay.
+    agentcenter_url: str | None = None  # Complete request URL, including skillId and version.
 
     # Marketplace dependency fields (parsed from plugin.json dict format)
     is_marketplace: bool = False
@@ -363,8 +363,10 @@ class DependencyReference(ProviderCoordinateMixin):
         Returns:
             str: Unique key for this dependency
         """
-        if self.skill_link_url:
-            return f"skill-link-v1:{self.skill_link_url}/{self.repo_url}"
+        if self.agentcenter_url:
+            from ...deps.registry.skill_link_config import agentcenter_identity
+
+            return agentcenter_identity(self.agentcenter_url, self.repo_url, self.reference)
         return build_dependency_unique_key(
             self.repo_url,
             host=self.host,

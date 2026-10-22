@@ -135,7 +135,7 @@ def detect_ref_change(
         locked_resource = None
     if declared_resource != locked_resource:
         return True
-    if isinstance(getattr(dep_ref, "skill_link_url", None), str):
+    if isinstance(getattr(dep_ref, "agentcenter_url", None), str):
         return dep_ref.reference != locked_dep.version
     if update_refs:
         return False

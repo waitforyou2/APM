@@ -102,7 +102,7 @@ def locked_dependency_kwargs(draw: st.DrawFn) -> dict[str, Any]:
 
     kwargs: dict[str, Any] = {"repo_url": _repo_url(draw)}
     kwargs["materialization_repo_url"] = None
-    kwargs["skill_link_url"] = (
+    kwargs["agentcenter_url"] = (
         None  # Native fixture; custom-provider constraints tested separately.
     )
     kwargs["alias"] = maybe(None, st.sampled_from([".safe", "safe.", "foo..bar", "my-skill.v2"]))

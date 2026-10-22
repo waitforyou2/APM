@@ -491,11 +491,9 @@ def lockfile_satisfies_manifest(
             dep, "resource", None
         ):
             reasons.append(f"  - {key} has a different resource kind/name in apm.lock.yaml")
-        elif isinstance(getattr(dep, "skill_link_url", None), str):
-            from apm_cli.deps.registry.skill_link_config import link_url
-
+        elif isinstance(getattr(dep, "agentcenter_url", None), str):
             locked = lockfile.dependencies[key]
-            expected = link_url(dep.skill_link_url, dep.repo_url, dep.reference)
+            expected = dep.agentcenter_url
             if locked.version != dep.reference or locked.resolved_url != expected:
                 reasons.append(
                     f"  - {key} has a different Skill Link version/source in apm.lock.yaml"

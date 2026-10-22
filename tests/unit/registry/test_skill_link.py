@@ -171,8 +171,11 @@ def test_manifest_mixes_git_and_skill_and_roundtrips(tmp_path):
     data["dependencies"]["apm"].append({"git": "https://github.com/acme/assets.git", "ref": "main"})
     pkg = APMPackage.from_mapping(data, package_path=tmp_path)
     skill, git = pkg.get_apm_dependencies()
-    assert skill.skill_link_url == BASE and skill.alias == "frontend-design"
-    assert git.source == "git" and git.skill_link_url is None
+    assert (
+        skill.agentcenter_url == link_url(BASE, "frontend-design", "0.0.1")
+        and skill.alias == "frontend-design"
+    )
+    assert git.source == "git" and git.agentcenter_url is None
     assert skill.to_apm_yml_entry() == {
         "id": "frontend-design",
         "version": "0.0.1",
@@ -230,6 +233,12 @@ def test_download_lock_roundtrip_renewal_and_hash(tmp_path, transport):
         registry_resolution=resolution,
     )
     saved = locked.to_dict()
+    assert (
+        saved["agentcenter_url"]
+        == saved["resolved_url"]
+        == link_url(BASE, "frontend-design", "0.0.1")
+    )
+    assert "skill_link_url" not in saved
     assert "Signature" not in json.dumps(saved) and "private-" not in json.dumps(saved)
     restored = LockedDependency.from_dict(saved)
     assert restored.get_unique_key() == dep.get_unique_key()

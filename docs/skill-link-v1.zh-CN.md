@@ -110,7 +110,7 @@ ZIP 下载上限 128 MiB；沿用公共解压器的 10,000 条目 / 512 MiB 解�
 
 - `apm_modules/<alias>/`：供 APM 维护的规范化包。
 - `.cac/skills/<alias>/SKILL.md` 及原始附件：分发结果。
-- `apm.lock.yaml`：保存固定版本、稳定的接口定位 URL、`skill_link_url` 和 ZIP SHA-256。
+- `apm.lock.yaml`：保存固定版本、稳定的接口定位 URL、`agentcenter_url`（完整接口请求地址，含 `skillId` 和 `version`，与 `resolved_url` 相同） 和 ZIP SHA-256。
 
 用户承诺相同 ID + version 的 ZIP 字节不变。首次下载由本机计算 SHA-256 建立基线；
 接口没有发布方摘要/签名，因此首次哈希并不是对发布方真实性的独立验证。

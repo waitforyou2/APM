@@ -12,6 +12,7 @@ from click.testing import CliRunner
 from apm_cli.cli import cli
 from apm_cli.core.project_manifest import project_manifest_path
 from apm_cli.deps.lockfile import LockedDependency
+from apm_cli.deps.registry.skill_link_config import link_url
 from apm_cli.models.apm_package import APMPackage, clear_apm_yml_cache
 from apm_cli.models.dependency.reference import DependencyReference
 from apm_cli.models.dependency.resource import ResourceSpec
@@ -58,7 +59,7 @@ def test_api_and_lock_preserve_kind(tmp_path, kind):
             repo_url=dep.repo_url,
             source="registry",
             version="0.0.1",
-            skill_link_url=BASE,
+            agentcenter_url=link_url(BASE, "frontend-design", "0.0.1"),
             resource=dep.resource,
             compact_resource=True,
         ).to_dict()
@@ -217,7 +218,11 @@ def test_complete_workspace_lifecycle(tmp_path, monkeypatch, transport, automati
     assert not (project / ".cac/skills/frontend-design/SKILL.md").exists()
     assert (project / ".cac/knowledge/frontend-design/SKILL.md").is_file()
     lock = load_yaml(project / "apm.lock.yaml")
-    api_lock = next(d for d in lock["dependencies"] if d.get("skill_link_url") == BASE)
+    api_lock = next(
+        d
+        for d in lock["dependencies"]
+        if d.get("agentcenter_url") == link_url(BASE, "frontend-design", "0.0.1")
+    )
     assert api_lock["resource"] == {"kind": "knowledge", "name": "frontend-design"}
     assert api_lock["compact_resource"] is True
     calls = transport["links"]

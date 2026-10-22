@@ -163,7 +163,7 @@ def check_registry_locked_dep(
     package_name = locked.get_unique_key()
     current = locked.version or ""
 
-    if ctx is None or locked.skill_link_url:
+    if ctx is None or locked.agentcenter_url:
         return OutdatedRow(
             package=package_name,
             current=current or "(none)",
@@ -171,7 +171,7 @@ def check_registry_locked_dep(
             status="unknown",
             source=(
                 "skill-link-v1 (exact version; no version-list API)"
-                if locked.skill_link_url
+                if locked.agentcenter_url
                 else "registry"
             ),
         )

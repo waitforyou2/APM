@@ -249,7 +249,7 @@ class LockedDependency:
     # from resolved_url and re-verified against this digest.
     resolved_url: str | None = None
     resolved_hash: str | None = None
-    skill_link_url: str | None = None
+    agentcenter_url: str | None = None
 
     # Git-source semver resolution fields (issue #1488).
     # Populated when a git-source dependency carried a semver range
@@ -291,14 +291,17 @@ class LockedDependency:
         """Separate canonical lock identity from materialization spelling."""
         if type(self.compact_resource) is not bool:
             raise ValueError("compact_resource must be a boolean")
-        if self.skill_link_url is not None:
-            from .registry.skill_link_config import normalize_base_url, validate_version
+        if self.agentcenter_url is not None:
+            from .registry.skill_link_config import agentcenter_base_url
 
-            self.skill_link_url = normalize_base_url(self.skill_link_url)
             if self.source != "registry":
-                raise ValueError("skill_link_url requires source: registry")
+                raise ValueError("agentcenter_url requires source: registry")
             ResourceSpec.parse({"kind": "skills", "name": self.repo_url})
-            validate_version(self.version)
+            agentcenter_base_url(self.agentcenter_url, self.repo_url, self.version)
+            if self.resolved_url is not None and self.resolved_url != self.agentcenter_url:
+                raise ValueError(
+                    "resolved_url must equal agentcenter_url for AgentCenter resources"
+                )
         try:
             self.alias = parse_alias_override(self.alias)
         except ValueError as exc:
@@ -334,8 +337,10 @@ class LockedDependency:
 
     def get_unique_key(self) -> str:
         """Returns unique key for this dependency."""
-        if self.skill_link_url:
-            return f"skill-link-v1:{self.skill_link_url}/{self.repo_url}"
+        if self.agentcenter_url:
+            from .registry.skill_link_config import agentcenter_identity
+
+            return agentcenter_identity(self.agentcenter_url, self.repo_url, self.version)
         return build_dependency_unique_key(
             self.repo_url,
             host=self.host,
@@ -433,8 +438,8 @@ class LockedDependency:
             result["compact_resource"] = True
         if self.resource is not None:
             result["resource"] = self.resource.to_dict()
-        if self.skill_link_url:
-            result["skill_link_url"] = self.skill_link_url
+        if self.agentcenter_url:
+            result["agentcenter_url"] = self.agentcenter_url
         if self.resolved_url:
             result["resolved_url"] = self.resolved_url
         if self.resolved_hash:
@@ -463,6 +468,12 @@ class LockedDependency:
         - Old ``deployed_skills`` lists are migrated to ``deployed_files``
           paths under ``.github/skills/`` and ``.claude/skills/``.
         """
+        if "skill_link_url" in data:
+            raise LockfileFormatError(
+                "skill_link_url is no longer supported; this build requires agentcenter_url. "
+                "Back up and remove the old apm.lock.yaml, then run apm install without --frozen "
+                "to regenerate it."
+            )
         deployed_files = _dedupe_preserving_order(list(data.get("deployed_files", [])))
 
         # Migrate legacy deployed_skills -> deployed_files
@@ -526,7 +537,7 @@ class LockedDependency:
             "compact_resource",
             "resolved_url",
             "resolved_hash",
-            "skill_link_url",
+            "agentcenter_url",
             "constraint",
             "resolved_tag",
             "resolved_at",
@@ -578,7 +589,7 @@ class LockedDependency:
             resource=(ResourceSpec.parse(data["resource"]) if "resource" in data else None),
             resolved_url=data.get("resolved_url"),
             resolved_hash=data.get("resolved_hash"),
-            skill_link_url=data.get("skill_link_url"),
+            agentcenter_url=data.get("agentcenter_url"),
             constraint=data.get("constraint"),
             resolved_tag=data.get("resolved_tag"),
             resolved_at=data.get("resolved_at"),
@@ -728,8 +739,8 @@ class LockedDependency:
                 if isinstance(getattr(dep_ref, "resource", None), ResourceSpec)
                 else None
             ),
-            skill_link_url=(
-                dep_ref.skill_link_url if isinstance(dep_ref.skill_link_url, str) else None
+            agentcenter_url=(
+                dep_ref.agentcenter_url if isinstance(dep_ref.agentcenter_url, str) else None
             ),
             resolved_url=(
                 registry_resolution.resolved_url if registry_resolution is not None else None
@@ -780,7 +791,7 @@ class LockedDependency:
             is_insecure=self.is_insecure,
             allow_insecure=self.allow_insecure,
             source=self.source,
-            skill_link_url=self.skill_link_url,
+            agentcenter_url=self.agentcenter_url,
             skill_subset=sorted(self.skill_subset) if self.skill_subset else None,
             target_subset=sorted(self.target_subset) if self.target_subset else None,
             resource=self.resource,

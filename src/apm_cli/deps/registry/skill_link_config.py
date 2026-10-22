@@ -51,6 +51,31 @@ def link_url(base_url: str, skill_id: str, version: str) -> str:
     )
 
 
+def agentcenter_base_url(url: str, skill_id: str, version: str) -> str:
+    """Validate a complete request locator and recover its trusted service base."""
+    validate_version(version)
+    if not isinstance(url, str):
+        raise ValueError("agentcenter_url must be a complete HTTPS request URL")
+    try:
+        parsed = urlsplit(url)
+        if not parsed.path.endswith(ENDPOINT):
+            raise ValueError
+        base = normalize_base_url(
+            urlunsplit((parsed.scheme, parsed.netloc, parsed.path[: -len(ENDPOINT)], "", ""))
+        )
+    except (ValueError, TypeError):
+        raise ValueError("agentcenter_url must contain the complete Skill Link endpoint") from None
+    if url != link_url(base, skill_id, version):
+        raise ValueError("agentcenter_url must match the dependency's skillId and exact version")
+    return base
+
+
+def agentcenter_identity(url: str, skill_id: str, version: str) -> str:
+    """Version-independent ownership key with the complete service endpoint."""
+    base = agentcenter_base_url(url, skill_id, version)
+    return f"agentcenter:{base}{ENDPOINT}?{urlencode({'skillId': skill_id})}"
+
+
 def validate_version(version: str) -> None:
     if not isinstance(version, str) or not _VERSION.fullmatch(version):
         raise ValueError(
@@ -84,7 +109,7 @@ def parse_skill_link_entry(entry: dict, registry_name: str, base_url: str):
     validate_version(dep.reference)
     dep.alias = dep.alias or dep.repo_url
     dep.registry_name = registry_name
-    dep.skill_link_url = normalize_base_url(base_url)
+    dep.agentcenter_url = link_url(base_url, dep.repo_url, dep.reference)
     return dep
 
 
@@ -142,7 +167,7 @@ def validate_provider_routing(dependencies, registries):
         if not isinstance(getattr(dep, "registry_name", None), str):
             continue
         body = (registries or {}).get(dep.registry_name)
-        if isinstance(body, dict) and body.get("provider") == PROVIDER and not dep.skill_link_url:
+        if isinstance(body, dict) and body.get("provider") == PROVIDER and not dep.agentcenter_url:
             raise ValueError(
                 "skill-link-v1 requires an object with id + version; declare Git sources with 'git:'"
             )
@@ -150,11 +175,11 @@ def validate_provider_routing(dependencies, registries):
 
 def can_replay_skill_link(dep, locked) -> bool:
     """Keep immutable-version hashes even on --refresh or alias-only changes."""
-    base = getattr(dep, "skill_link_url", None)
+    locator = getattr(dep, "agentcenter_url", None)
     return bool(
-        isinstance(base, str)
+        isinstance(locator, str)
         and locked
-        and base == getattr(locked, "skill_link_url", None)
+        and locator == getattr(locked, "agentcenter_url", None)
         and dep.reference == locked.version
         and locked.resolved_url
         and locked.resolved_hash

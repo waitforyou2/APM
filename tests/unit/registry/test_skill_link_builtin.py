@@ -7,6 +7,7 @@ import shutil
 
 import pytest
 
+from apm_cli.deps.registry.skill_link_config import link_url
 from apm_cli.models.apm_package import APMPackage, clear_apm_yml_cache
 from apm_cli.models.manifest_contract import OPENAPM_V01_SCHEMA_URI
 from tests.unit.registry.test_skill_link import BASE, manifest
@@ -29,7 +30,7 @@ def test_builtin_routes_objects_without_mutating_yaml(tmp_path, automatic, trans
     original = copy.deepcopy(data)
     pkg = APMPackage.from_mapping(data, package_path=tmp_path)
     dep = pkg.get_apm_dependencies()[0]
-    assert dep.skill_link_url == BASE
+    assert dep.agentcenter_url == link_url(BASE, "frontend-design", "0.0.1")
     assert dep.registry_name == pkg.default_registry == "corp-skills"
     assert pkg.registry_providers == {"corp-skills": "skill-link-v1"}
     assert pkg.registries["corp-skills"] == BASE
@@ -40,7 +41,9 @@ def test_builtin_routes_objects_without_mutating_yaml(tmp_path, automatic, trans
 def test_url_comes_from_current_profile_not_another_constant(tmp_path, automatic):
     automatic["service_url"] = "https://changed.example.test/api/mcpService/"
     pkg = APMPackage.from_mapping(implicit_manifest(), package_path=tmp_path)
-    assert pkg.get_apm_dependencies()[0].skill_link_url == automatic["service_url"].rstrip("/")
+    assert pkg.get_apm_dependencies()[0].agentcenter_url == link_url(
+        automatic["service_url"], "frontend-design", "0.0.1"
+    )
 
 
 def test_profile_routing_does_not_require_password_or_login(tmp_path, automatic, transport):
@@ -57,7 +60,7 @@ def test_builtin_handles_dev_dependencies_and_serialized_registry_name(tmp_path,
     data["devDependencies"]["apm"][0]["registry"] = "corp-skills"
     pkg = APMPackage.from_mapping(data, package_path=tmp_path)
     dep = pkg.dev_dependencies["apm"][0]
-    assert dep.skill_link_url == BASE
+    assert dep.agentcenter_url == link_url(BASE, "frontend-design", "0.0.1")
     roundtrip = dep.to_apm_yml_entry()
     data["devDependencies"]["apm"] = [roundtrip]
     assert APMPackage.from_mapping(data, package_path=tmp_path).dev_dependencies["apm"][0] == dep
@@ -66,12 +69,14 @@ def test_builtin_handles_dev_dependencies_and_serialized_registry_name(tmp_path,
 def test_explicit_provider_and_native_registry_take_precedence(tmp_path, automatic):
     explicit = manifest(url="https://explicit.example.test")
     pkg = APMPackage.from_mapping(explicit, package_path=tmp_path)
-    assert pkg.get_apm_dependencies()[0].skill_link_url == "https://explicit.example.test"
+    assert pkg.get_apm_dependencies()[0].agentcenter_url == link_url(
+        "https://explicit.example.test", "frontend-design", "0.0.1"
+    )
     explicit["registries"] = {"native": {"url": "https://native.test"}, "default": "native"}
     explicit["dependencies"]["apm"][0]["id"] = "acme/skill"
     pkg = APMPackage.from_mapping(explicit, package_path=tmp_path)
     dep = pkg.get_apm_dependencies()[0]
-    assert dep.registry_name == "native" and dep.skill_link_url is None
+    assert dep.registry_name == "native" and dep.agentcenter_url is None
     assert pkg.registry_providers is None
 
 
@@ -100,8 +105,8 @@ def test_mixed_git_objects_and_shorthands_keep_git_semantics(tmp_path, automatic
     _, explicit, shorthand = APMPackage.from_mapping(
         data, package_path=tmp_path
     ).get_apm_dependencies()
-    assert explicit.source == "git" and explicit.skill_link_url is None
-    assert shorthand.source != "registry" and shorthand.skill_link_url is None
+    assert explicit.source == "git" and explicit.agentcenter_url is None
+    assert shorthand.source != "registry" and shorthand.agentcenter_url is None
 
 
 def test_git_only_never_loads_profile_or_enables_registry(tmp_path, monkeypatch):
@@ -124,7 +129,9 @@ def test_explicit_block_never_loads_builtin_profile(tmp_path, monkeypatch):
 
     monkeypatch.setattr("apm_cli.deps.registry.skill_link_auth._load_private_profiles", fail)
     pkg = APMPackage.from_mapping(manifest(), package_path=tmp_path)
-    assert pkg.get_apm_dependencies()[0].skill_link_url == BASE
+    assert pkg.get_apm_dependencies()[0].agentcenter_url == link_url(
+        BASE, "frontend-design", "0.0.1"
+    )
 
 
 def test_feature_gate_still_required(tmp_path, monkeypatch, automatic):
@@ -147,7 +154,7 @@ def test_missing_private_profile_keeps_native_behavior(tmp_path, monkeypatch):
     data = implicit_manifest()
     data["dependencies"]["apm"][0] = {"id": "acme/skill", "version": "1.0.0"}
     dep = APMPackage.from_mapping(data, package_path=tmp_path).get_apm_dependencies()[0]
-    assert dep.skill_link_url is None
+    assert dep.agentcenter_url is None
 
 
 def test_implicit_default_overrides_stale_local_url_and_default(tmp_path, monkeypatch, automatic):
@@ -166,7 +173,9 @@ def test_implicit_default_overrides_stale_local_url_and_default(tmp_path, monkey
     )
     pkg = APMPackage.from_mapping(implicit_manifest(), package_path=tmp_path)
     assert pkg.registries["corp-skills"] == BASE
-    assert pkg.get_apm_dependencies()[0].skill_link_url == BASE
+    assert pkg.get_apm_dependencies()[0].agentcenter_url == link_url(
+        BASE, "frontend-design", "0.0.1"
+    )
     assert pkg.default_registry == "corp-skills"
 
 
